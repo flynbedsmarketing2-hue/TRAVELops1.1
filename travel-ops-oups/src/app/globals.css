@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-background-light text-slate-900 antialiased dark:bg-background-dark dark:text-slate-100;
+}
+
+a {
+  @apply text-slate-900 underline-offset-4 transition-colors hover:text-primary dark:text-slate-100;
+}
+
+.card {
+  @apply rounded-2xl border border-slate-200/70 bg-white/80 shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/40 dark:shadow-none;
+}
+
+.section-shell {
+  @apply space-y-4 rounded-2xl border border-slate-200/70 bg-white/80 p-6 shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/40 dark:shadow-none;
+}
