@@ -28,7 +28,7 @@ function avgCommission(pkg: TravelPackage): number {
 }
 
 function formatMoney(n: number): string {
-  if (!Number.isFinite(n) || n === Infinity) return "—";
+  if (!Number.isFinite(n) || n === Infinity) return "-";
   return `${Math.round(n)} DZD`;
 }
 
@@ -44,7 +44,7 @@ function StatusPill({ status }: { status: TravelPackage["status"] }) {
       : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-900/20 dark:text-amber-200";
   return (
     <span className={cn("inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold", styles)}>
-      {status === "published" ? "Publié" : "Brouillon"}
+      {status === "published" ? "Publie" : "Brouillon"}
     </span>
   );
 }
@@ -119,7 +119,7 @@ export default function PackagesPage() {
         <PageHeader
           eyebrow="Packages"
           title="Gestion des offres"
-          subtitle="CRUD local-only : brouillons et publiés sont stockés dans localStorage."
+          subtitle="Filtres rapides, import/export JSON, creation en local."
           actions={
             <>
               <Button
@@ -163,7 +163,7 @@ export default function PackagesPage() {
                       ? "replace"
                       : "merge";
                     const count = importPackages(imported, mode);
-                    window.alert(`Import terminé : ${count} package(s).`);
+                    window.alert(`Import termine : ${count} package(s).`);
                   } catch {
                     window.alert("JSON invalide.");
                   } finally {
@@ -175,7 +175,7 @@ export default function PackagesPage() {
               {canEdit ? (
                 <Link href="/packages/new" className={buttonClassName({ variant: "primary" })}>
                   <Plus className="h-4 w-4" />
-                  Créer
+                  Creer
                 </Link>
               ) : null}
             </>
@@ -184,7 +184,7 @@ export default function PackagesPage() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Kpi label="Total" value={stats.total} />
-          <Kpi label="Publiés" value={stats.published} />
+          <Kpi label="Publies" value={stats.published} />
           <Kpi label="Brouillons" value={stats.draft} />
         </div>
 
@@ -196,7 +196,7 @@ export default function PackagesPage() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Rechercher (nom, code, destination, responsable...)"
+                  placeholder="Rechercher un package"
                   className="pl-10"
                 />
               </div>
@@ -206,10 +206,10 @@ export default function PackagesPage() {
                 onChange={(e) => setSort(e.target.value as SortKey)}
                 className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm shadow-black/5 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-100"
               >
-                <option value="recent">Plus récents</option>
-                <option value="priceAsc">Prix min ↑</option>
-                <option value="priceDesc">Prix min ↓</option>
-                <option value="stockDesc">Stock ↓</option>
+                <option value="recent">Recents</option>
+                <option value="priceAsc">Prix min +</option>
+                <option value="priceDesc">Prix min -</option>
+                <option value="stockDesc">Stock -</option>
               </select>
             </div>
 
@@ -218,7 +218,7 @@ export default function PackagesPage() {
                 Tous
               </ChipButton>
               <ChipButton active={statusFilter === "published"} onClick={() => setStatusFilter("published")}>
-                Publiés
+                Publies
               </ChipButton>
               <ChipButton active={statusFilter === "draft"} onClick={() => setStatusFilter("draft")}>
                 Brouillons
@@ -229,7 +229,7 @@ export default function PackagesPage() {
 
         {filtered.length === 0 ? (
           <div className="section-shell">
-            <p className="text-sm text-slate-600 dark:text-slate-300">Aucun package à afficher (selon tes filtres).</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">Aucun package selon ces filtres.</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
@@ -250,7 +250,7 @@ export default function PackagesPage() {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-white">{pkg.general.productName || "Sans nom"}</p>
                         <p className="truncate text-xs text-white/80">
-                          {pkg.general.productCode || "—"} • {pkg.flights.destination || "—"}
+                          {pkg.general.productCode || "-"} - {pkg.flights.destination || "-"}
                         </p>
                       </div>
                       <StatusPill status={pkg.status} />
@@ -288,9 +288,7 @@ export default function PackagesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const copyOps = window.confirm(
-                            "Dupliquer avec les Ops existants ? (OK = copier, Annuler = régénérer)"
-                          );
+                          const copyOps = window.confirm("Dupliquer avec les ops existants ? (OK = copier, Annuler = regenerer)");
                           duplicatePackage(pkg.id, { copyOps });
                         }}
                       >

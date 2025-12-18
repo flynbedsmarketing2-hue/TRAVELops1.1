@@ -23,18 +23,18 @@ export default function VoyagesPage() {
       <div className="space-y-8">
         <PageHeader
           eyebrow="Catalogue"
-          title="Voyages publiés"
-          subtitle="Page interne : seuls les packages publiés sont listés."
+          title="Voyages publies"
+          subtitle="Liste interne des offres actives."
           actions={
             <Link href="/sales" className={buttonClassName({ variant: "outline" })}>
-              Accéder aux ventes
+              Aller aux ventes
             </Link>
           }
         />
 
         {published.length === 0 ? (
           <div className="section-shell">
-            <p className="text-sm text-slate-600 dark:text-slate-300">Aucun package publié pour le moment.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">Aucun package publie pour le moment.</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -52,7 +52,7 @@ export default function VoyagesPage() {
                     <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-white">{pkg.general.productName}</p>
-                        <p className="truncate text-xs text-white/80">{pkg.flights.destination || "—"}</p>
+                        <p className="truncate text-xs text-white/80">{pkg.flights.destination || "-"}</p>
                       </div>
                       <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
                         Stock {pkg.general.stock}
@@ -63,17 +63,17 @@ export default function VoyagesPage() {
                   <CardContent className="space-y-4 pt-5">
                     <div className="space-y-1 text-sm text-slate-700 dark:text-slate-200">
                       <p className="line-clamp-2">
-                        Villes / étapes :{" "}
+                        Villes:{" "}
                         <span className="font-semibold">
-                          {pkg.flights.cities.length ? pkg.flights.cities.join(", ") : "à définir"}
+                          {pkg.flights.cities.length ? pkg.flights.cities.join(", ") : "A definir"}
                         </span>
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-300">Code: {pkg.general.productCode || "—"}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-300">Code: {pkg.general.productCode || "-"}</p>
                     </div>
 
                     <Link href="/sales" className={buttonClassName({ variant: "primary" })}>
                       <Plane className="h-4 w-4" />
-                      {canBook ? "Réserver" : "Demander une réservation"}
+                      {canBook ? "Reserver" : "Demander"}
                     </Link>
                   </CardContent>
                 </Card>

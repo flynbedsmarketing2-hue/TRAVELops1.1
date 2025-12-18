@@ -62,28 +62,28 @@ export default function DashboardPage() {
   const alerts: { label: string; level: "info" | "warn" }[] = [];
   lowStock.forEach((pkg) =>
     alerts.push({
-      label: `Stock bas : ${pkg.general.productName} (${pkg.general.stock} pax)`,
+      label: `Stock bas: ${pkg.general.productName} (${pkg.general.stock} pax)`,
       level: "warn",
     })
   );
   optionExpiring.forEach((b) =>
     alerts.push({
-      label: `Option bientôt expirée : booking ${b.id.slice(0, 6)} (package ${b.packageId})`,
+      label: `Option a confirmer: booking ${b.id.slice(0, 6)} (package ${b.packageId})`,
       level: "warn",
     })
   );
   pendingOps.forEach((g) =>
     alerts.push({
-      label: `Ops à valider : ${g.flightLabel}`,
+      label: `Ops a valider: ${g.flightLabel}`,
       level: "info",
     })
   );
 
   const todos: string[] = [];
-  if (pendingOps.length) todos.push(`${pendingOps.length} groupe(s) Ops à valider`);
-  if (unpaidBookings.length) todos.push(`${unpaidBookings.length} booking(s) partiellement payés`);
-  if (optionExpiring.length) todos.push(`${optionExpiring.length} option(s) à confirmer`);
-  if (!todos.length) todos.push("Aucune action urgente.");
+  if (pendingOps.length) todos.push(`${pendingOps.length} groupe(s) ops a valider`);
+  if (unpaidBookings.length) todos.push(`${unpaidBookings.length} paiement(s) incomplets`);
+  if (optionExpiring.length) todos.push(`${optionExpiring.length} option(s) a confirmer`);
+  if (!todos.length) todos.push("Rien a traiter.");
 
   const role = currentUser?.role;
   const roleTag =
@@ -103,13 +103,13 @@ export default function DashboardPage() {
     <AuthGuard allowRoles={["administrator", "travel_designer", "sales_agent", "viewer"]}>
       <div className="space-y-8">
         <PageHeader
-          eyebrow={`Dashboard • ${roleTag}`}
-          title={`Bonjour ${currentUser?.username ?? "invité"}`}
-          subtitle="Vue rapide des packages, ventes et opérations. Données persistées via localStorage."
+          eyebrow={`Dashboard - ${roleTag}`}
+          title={`Bonjour ${currentUser?.username ?? "invite"}`}
+          subtitle="Vue rapide des packages, ventes et ops."
           actions={
             <>
               <Link href="/packages/new" className={buttonClassName({ variant: "primary" })}>
-                Créer un package
+                Nouveau package
               </Link>
               <Link href="/sales" className={buttonClassName({ variant: "outline" })}>
                 Ventes
@@ -119,9 +119,9 @@ export default function DashboardPage() {
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Packages publiés" value={published} icon={<PlaneTakeoff className="h-5 w-5" />} />
+          <KpiCard label="Packages publies" value={published} icon={<PlaneTakeoff className="h-5 w-5" />} />
           <KpiCard label="Packages brouillon" value={draft} icon={<Package2 className="h-5 w-5" />} />
-          <KpiCard label="Réservations" value={bookings.length} icon={<ShoppingBag className="h-5 w-5" />} />
+          <KpiCard label="Reservations" value={bookings.length} icon={<ShoppingBag className="h-5 w-5" />} />
           <KpiCard label="Stock total (pax)" value={totalStock} icon={<TrendingUp className="h-5 w-5" />} />
         </div>
 
@@ -132,7 +132,7 @@ export default function DashboardPage() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <CheckCircle2 className="h-4 w-4" />
                 </span>
-                À faire
+                A faire
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -184,12 +184,12 @@ export default function DashboardPage() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Clock3 className="h-4 w-4" />
                 </span>
-                Départs à venir
+                Departs a venir
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {upcomingDepartures.length === 0 ? (
-                <p className="text-sm text-slate-600 dark:text-slate-300">Aucun départ planifié.</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">Aucun depart planifie.</p>
               ) : (
                 upcomingDepartures.map(({ pkg, nextDate }) => (
                   <div
@@ -199,11 +199,11 @@ export default function DashboardPage() {
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-slate-900 dark:text-slate-100">{pkg.general.productName}</p>
                       <p className="truncate text-xs text-slate-500 dark:text-slate-300">
-                        {pkg.flights.destination} • {nextDate}
+                        {pkg.flights.destination} - {nextDate}
                       </p>
                     </div>
                     <span className="text-xs font-semibold text-primary">
-                      Stock {pkg.general.stock} • Réservé {bookedPaxPerPackage(pkg.id)}
+                      Stock {pkg.general.stock} | Reserve {bookedPaxPerPackage(pkg.id)}
                     </span>
                   </div>
                 ))
@@ -215,26 +215,11 @@ export default function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Modules</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
-                <li>Auth mock + rôles (admin/travel_designer/sales_agent/viewer)</li>
-                <li>Backoffice packages (CRUD, duplication, PDF, stats)</li>
-                <li>Catalogue Voyages (packages publiés)</li>
-                <li>Ventes / Bookings (stock, rooming list, uploads)</li>
-                <li>Ops (groupe par vol, validations, fournisseurs, timeline)</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Activité récente (bookings)</CardTitle>
+              <CardTitle>Activite recente</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {recentBookings.length === 0 ? (
-                <p className="text-sm text-slate-600 dark:text-slate-300">Aucune réservation.</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">Aucune reservation.</p>
               ) : (
                 recentBookings.map((b) => (
                   <div
@@ -243,10 +228,10 @@ export default function DashboardPage() {
                   >
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
-                        Booking {b.id.slice(0, 6)} • {b.bookingType}
+                        Booking {b.id.slice(0, 6)} - {b.bookingType}
                       </p>
                       <p className="truncate text-xs text-slate-500 dark:text-slate-300">
-                        Pax {b.paxTotal} • Paiement {b.payment.paidAmount}/{b.payment.totalPrice}
+                        Pax {b.paxTotal} | Paiement {b.payment.paidAmount}/{b.payment.totalPrice}
                       </p>
                     </div>
                     <span className="text-xs text-slate-500 dark:text-slate-300">
@@ -278,4 +263,3 @@ function KpiCard({ label, value, icon }: { label: string; value: number | string
     </Card>
   );
 }
-

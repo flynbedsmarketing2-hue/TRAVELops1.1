@@ -8,10 +8,25 @@
 
 html.dark {
   color-scheme: dark;
+  background: radial-gradient(circle at 20% 20%, rgba(43, 140, 238, 0.1), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(43, 140, 238, 0.08), transparent 30%),
+    radial-gradient(circle at 70% 60%, rgba(15, 23, 42, 0.12), transparent 40%),
+    #0b1320;
 }
 
 body {
-  @apply bg-background-light text-slate-900 antialiased dark:bg-background-dark dark:text-slate-100;
+  background: radial-gradient(circle at 20% 20%, rgba(43, 140, 238, 0.08), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(43, 140, 238, 0.06), transparent 30%),
+    radial-gradient(circle at 70% 60%, rgba(15, 23, 42, 0.06), transparent 40%),
+    #f6f7f8;
+  @apply text-slate-900 antialiased dark:bg-background-dark dark:text-slate-100;
+}
+
+html.dark body {
+  background: radial-gradient(circle at 20% 20%, rgba(43, 140, 238, 0.12), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(43, 140, 238, 0.1), transparent 30%),
+    radial-gradient(circle at 70% 60%, rgba(15, 23, 42, 0.18), transparent 40%),
+    #0b1320;
 }
 
 a {
@@ -19,9 +34,13 @@ a {
 }
 
 .card {
-  @apply rounded-2xl border border-slate-200/70 bg-white/80 shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/40 dark:shadow-none;
+  @apply rounded-2xl border border-slate-200/60 bg-white/90 shadow-[0_8px_30px_rgba(15,23,42,0.08)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/50 dark:shadow-none;
 }
 
 .section-shell {
-  @apply space-y-4 rounded-2xl border border-slate-200/70 bg-white/80 p-6 shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/40 dark:shadow-none;
+  @apply space-y-4 rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-[0_8px_30px_rgba(15,23,42,0.08)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/50 dark:shadow-none;
+}
+
+::selection {
+  background: rgba(43, 140, 238, 0.2);
 }

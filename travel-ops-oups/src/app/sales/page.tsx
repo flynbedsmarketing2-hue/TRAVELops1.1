@@ -1,19 +1,10 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import {
-  ClipboardList,
-  FileText,
-  Pencil,
-  PlusCircle,
-  ReceiptText,
-  Trash2,
-} from "lucide-react";
+import { ClipboardList, FileText, Pencil, PlusCircle, ReceiptText, Trash2 } from "lucide-react";
 import AuthGuard from "../../components/AuthGuard";
 import PageHeader from "../../components/PageHeader";
-import BookingWizardModal, {
-  type BookingDraft,
-} from "../../components/BookingWizardModal";
+import BookingWizardModal, { type BookingDraft } from "../../components/BookingWizardModal";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { cn } from "../../components/ui/cn";
@@ -66,35 +57,26 @@ const defaultBooking = (packageId: string | undefined): BookingDraft => ({
 });
 
 export default function SalesPage() {
-  const { bookings, addBooking, updateBooking, deleteBooking } =
-    useBookingStore();
+  const { bookings, addBooking, updateBooking, deleteBooking } = useBookingStore();
   const { packages } = usePackageStore();
   const { currentUser } = useUserStore();
 
   const publishedPackages = packages.filter((p) => p.status === "published");
 
-  const canCreate =
-    currentUser?.role === "administrator" || currentUser?.role === "sales_agent";
+  const canCreate = currentUser?.role === "administrator" || currentUser?.role === "sales_agent";
 
-  const [draft, setDraft] = useState<BookingDraft>(
-    defaultBooking(publishedPackages[0]?.id)
-  );
+  const [draft, setDraft] = useState<BookingDraft>(defaultBooking(publishedPackages[0]?.id));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  const packageMap = useMemo(
-    () => Object.fromEntries(packages.map((p) => [p.id, p])),
-    [packages]
-  );
+  const packageMap = useMemo(() => Object.fromEntries(packages.map((p) => [p.id, p])), [packages]);
 
   const totalBookedPax = (pkgId: string, ignoreBookingId?: string) =>
     bookings
       .filter((b) => b.packageId === pkgId && b.id !== ignoreBookingId)
       .reduce((sum, b) => sum + b.paxTotal, 0);
 
-  const currentPackage: TravelPackage | null = draft.packageId
-    ? packageMap[draft.packageId] ?? null
-    : null;
+  const currentPackage: TravelPackage | null = draft.packageId ? packageMap[draft.packageId] ?? null : null;
 
   const remainingStock =
     (currentPackage?.general.stock ?? 0) -
@@ -106,9 +88,7 @@ export default function SalesPage() {
       .map((f) => f.departureDate)
       .filter(Boolean)
       .sort();
-    const baseDate = departures.length
-      ? new Date(departures[0])
-      : new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+    const baseDate = departures.length ? new Date(departures[0]) : new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
     const holdDays = remainingStock <= 5 ? 2 : 5;
     baseDate.setDate(baseDate.getDate() - holdDays);
     const now = new Date();
@@ -143,15 +123,12 @@ export default function SalesPage() {
     const totals = computeTotals(currentPackage, draft.rooms);
     if (draft.paxTotal > remainingStock) return;
 
-    const reservedUntil =
-      draft.bookingType === "En option" ? computeReservedUntil() : undefined;
+    const reservedUntil = draft.bookingType === "En option" ? computeReservedUntil() : undefined;
 
     const payment = {
       ...draft.payment,
       totalPrice: draft.payment.totalPrice > 0 ? draft.payment.totalPrice : totals.total,
-      isFullyPaid:
-        draft.payment.paidAmount >=
-        (draft.payment.totalPrice > 0 ? draft.payment.totalPrice : totals.total),
+      isFullyPaid: draft.payment.paidAmount >= (draft.payment.totalPrice > 0 ? draft.payment.totalPrice : totals.total),
     };
 
     const payload: BookingDraft = {
@@ -169,15 +146,12 @@ export default function SalesPage() {
   };
 
   const deleteOne = (bookingId: string) => {
-    const ok = window.confirm("Supprimer cette réservation ?");
+    const ok = window.confirm("Supprimer cette reservation ?");
     if (!ok) return;
     deleteBooking(bookingId);
   };
 
-  const exportBookingPdf = async (
-    booking: Booking,
-    kind: "confirmation" | "invoice"
-  ) => {
+  const exportBookingPdf = async (booking: Booking, kind: "confirmation" | "invoice") => {
     const pkg = packageMap[booking.packageId];
     if (!pkg) return;
 
@@ -194,32 +168,26 @@ export default function SalesPage() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
           <div>
             <div style="color:#2b8cee;font-weight:800;font-size:12px;">TravelOps Platform</div>
-            <div style="font-size:20px;font-weight:800;margin-top:4px;">${
-              kind === "invoice" ? "Invoice" : "Confirmation"
-            } — Booking ${booking.id.slice(0, 6)}</div>
+            <div style="font-size:20px;font-weight:800;margin-top:4px;">${kind === "invoice" ? "Invoice" : "Confirmation"} - Booking ${booking.id.slice(0, 6)}</div>
             <div style="font-size:12px;color:#475569;margin-top:4px;">
-              Package: ${pkg.general.productName} (${pkg.general.productCode}) · Destination: ${pkg.flights.destination}
+              Package: ${pkg.general.productName} (${pkg.general.productCode}) – Destination: ${pkg.flights.destination}
             </div>
           </div>
           <div style="text-align:right;font-size:12px;color:#475569;">
             <div>Type: <strong style="color:#0f172a;">${booking.bookingType}</strong></div>
             <div>Pax: <strong style="color:#0f172a;">${booking.paxTotal}</strong></div>
             <div>Paiement: <strong style="color:#0f172a;">${status.text}</strong></div>
-            ${
-              booking.reservedUntil
-                ? `<div>Option jusqu'au <strong style="color:#0f172a;">${booking.reservedUntil}</strong></div>`
-                : ""
-            }
+            ${booking.reservedUntil ? `<div>Option jusqu'au <strong style="color:#0f172a;">${booking.reservedUntil}</strong></div>` : ""}
           </div>
         </div>
       </div>
       ${
         kind === "invoice"
           ? `<div style="margin-top:10px;font-size:12px;color:#475569;">
-               <strong>Invoice</strong> — détail des lignes de facturation.
+               <strong>Invoice</strong> - detail des lignes de facturation.
              </div>`
           : `<div style="margin-top:10px;font-size:12px;color:#475569;">
-               <strong>Confirmation</strong> — récapitulatif de la réservation.
+               <strong>Confirmation</strong> - recap de la reservation.
              </div>`
       }
       <div style="margin-top:14px;">
@@ -234,9 +202,7 @@ export default function SalesPage() {
           <tbody>
             ${booking.rooms
               .map((room) => {
-                const occ = room.occupants
-                  .map((o) => `${o.type}${o.name ? ` - ${o.name}` : ""}`)
-                  .join(", ");
+                const occ = room.occupants.map((o) => `${o.type}${o.name ? ` - ${o.name}` : ""}`).join(", ");
                 return `<tr>
                   <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">${room.roomType}</td>
                   <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">${occ}</td>
@@ -333,12 +299,12 @@ export default function SalesPage() {
         <PageHeader
           eyebrow="Sales"
           title="Bookings & paiements"
-          subtitle="Wizard guidé (package → rooming → uploads → paiement → confirmation), contrôle stock et exports PDF."
+          subtitle="Creation rapide, controle stock, exports."
           actions={
             canCreate ? (
               <Button onClick={openCreate}>
                 <PlusCircle className="h-4 w-4" />
-                Créer une réservation
+                Nouvelle reservation
               </Button>
             ) : null
           }
@@ -350,12 +316,12 @@ export default function SalesPage() {
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <ClipboardList className="h-4 w-4" />
               </span>
-              Réservations
+              Reservations
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {bookings.length === 0 ? (
-              <p className="text-sm text-slate-600 dark:text-slate-300">Aucune réservation pour l’instant.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Aucune reservation.</p>
             ) : (
               <Table>
                 <THead>
@@ -390,7 +356,7 @@ export default function SalesPage() {
                               {pkg?.general.productName ?? "Package inconnu"}
                             </p>
                             <p className="truncate text-xs text-slate-500 dark:text-slate-300">
-                              {pkg?.general.productCode ?? "—"} • {pkg?.flights.destination ?? "—"}
+                              {pkg?.general.productCode ?? "-"} - {pkg?.flights.destination ?? "-"}
                             </p>
                           </div>
                         </TD>
@@ -411,13 +377,13 @@ export default function SalesPage() {
                           </span>
                         </TD>
                         <TD>
-                          <span className="text-sm text-slate-600 dark:text-slate-300">{booking.reservedUntil || "—"}</span>
+                          <span className="text-sm text-slate-600 dark:text-slate-300">{booking.reservedUntil || "-"}</span>
                         </TD>
                         <TD className="text-right">
                           <div className="flex flex-wrap justify-end gap-2">
                             <Button variant="outline" size="sm" onClick={() => openEdit(booking)}>
                               <Pencil className="h-4 w-4" />
-                              Éditer
+                              Editer
                             </Button>
                             <Button variant="danger" size="sm" onClick={() => deleteOne(booking.id)}>
                               <Trash2 className="h-4 w-4" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, Moon, Sun } from "lucide-react";
+import { LogOut, Menu, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUiStore } from "../stores/useUiStore";
@@ -19,9 +19,9 @@ export default function Topbar({ onOpenSidebar }: Props) {
   if (pathname === "/login") return null;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/70 backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/60">
+    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/70">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -31,9 +31,12 @@ export default function Topbar({ onOpenSidebar }: Props) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <p className="hidden text-sm font-semibold text-slate-600 dark:text-slate-300 lg:block">
-            {pathname === "/" ? "Accueil" : "Backoffice"}
-          </p>
+          <Link
+            href="/"
+            className="hidden text-sm font-semibold text-slate-700 transition hover:text-primary dark:text-slate-200 lg:inline"
+          >
+            TravelOps
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
@@ -43,6 +46,7 @@ export default function Topbar({ onOpenSidebar }: Props) {
             onClick={toggleTheme}
             aria-label="Basculer le thème"
             title="Basculer le thème"
+            className="rounded-full border border-slate-200/70 bg-white/80 text-slate-900 shadow-sm shadow-slate-900/10 transition hover:border-primary hover:text-primary hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/50 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-primary dark:hover:text-white dark:shadow-none"
           >
             {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </Button>
@@ -52,8 +56,8 @@ export default function Topbar({ onOpenSidebar }: Props) {
               <span className="hidden text-sm text-slate-600 dark:text-slate-300 md:inline">
                 {currentUser.username} · {currentUser.role}
               </span>
-              <Button variant="secondary" onClick={() => logout()}>
-                Logout
+              <Button variant="secondary" onClick={() => logout()} aria-label="Se déconnecter">
+                <LogOut className="h-4 w-4" />
               </Button>
             </>
           ) : (
@@ -66,4 +70,3 @@ export default function Topbar({ onOpenSidebar }: Props) {
     </header>
   );
 }
-

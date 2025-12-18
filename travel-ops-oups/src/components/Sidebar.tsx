@@ -39,7 +39,7 @@ export default function Sidebar({ role, open = false, onClose }: Props) {
 
       <div className="px-3">
         <p className="px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-          Navigation
+          Menu
         </p>
         <nav className="space-y-1">
           {items.map((item) => {
@@ -73,4 +73,3 @@ export default function Sidebar({ role, open = false, onClose }: Props) {
     </aside>
   );
 }
-
