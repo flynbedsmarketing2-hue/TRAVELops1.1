@@ -1,0 +1,28 @@
+
+> travel-ops-oups@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+   ▲ Next.js 16.0.10 (Turbopack)
+   - Local:         http://127.0.0.1:3000
+   - Network:       http://127.0.0.1:3000
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Ready in 7s
+ ○ Compiling / ...
+ GET / 200 in 13.8s (compile: 13.6s, render: 163ms)
+ GET /login 200 in 516ms (compile: 490ms, render: 25ms)
+ GET /dashboard 200 in 418ms (compile: 376ms, render: 43ms)
+ GET /dashboard 200 in 34ms (compile: 4ms, render: 30ms)
+ GET /packages 200 in 390ms (compile: 371ms, render: 19ms)
+ GET /voyages 200 in 303ms (compile: 286ms, render: 17ms)
+ GET /sales 200 in 411ms (compile: 387ms, render: 25ms)
+ GET /packages 200 in 18ms (compile: 3ms, render: 15ms)
+ GET /packages/new 200 in 336ms (compile: 317ms, render: 20ms)
+ GET /voyages 200 in 26ms (compile: 4ms, render: 21ms)
+ GET /sales 200 in 17ms (compile: 3ms, render: 14ms)
+ GET /dashboard 200 in 17ms (compile: 3ms, render: 14ms)
