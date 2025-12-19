@@ -936,7 +936,7 @@ export function PackageEditor({ mode, initialPackage }: Props) {
             <p className="font-semibold text-slate-800 dark:text-slate-100">Raccourcis</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>Publié est bloqué si des champs obligatoires manquent.</li>
-              <li>Modifier les vols régénère automatiquement les groupes Ops.</li>
+              <li>Modifier les vols régénère les groupes Ops uniquement si la structure change.</li>
               <li>Images: URL ou fichier.</li>
             </ul>
           </div>
