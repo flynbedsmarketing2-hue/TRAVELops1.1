@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { mockBookings } from "../lib/mockData";
 import type { Booking } from "../types";
 import { generateId, makePersistStorage } from "./storeUtils";
 
@@ -21,7 +22,7 @@ const storage = makePersistStorage();
 export const useBookingStore = create<BookingStore>()(
   persist(
     (set, get) => ({
-      bookings: [],
+      bookings: [...mockBookings],
       addBooking: (booking) => {
         const newBooking: Booking = {
           ...booking,

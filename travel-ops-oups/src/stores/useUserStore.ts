@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { mockUsers } from "../lib/mockData";
 import type { User } from "../types";
 import { generateId, makePersistStorage } from "./storeUtils";
 
@@ -31,12 +32,14 @@ const defaultAdmin: User = {
   fullName: "Admin",
 };
 
+const seedUsers: User[] = [defaultAdmin, ...mockUsers];
+
 const storage = makePersistStorage();
 
 export const useUserStore = create<UserStore>()(
   persist(
     (set, get) => ({
-      users: [defaultAdmin],
+      users: seedUsers,
       currentUser: null,
       login: (username, password) => {
         const found = get().users.find(
@@ -81,30 +84,10 @@ export const useUserStore = create<UserStore>()(
       },
       seedDemoUsers: () => {
         const existing = new Set(get().users.map((u) => u.username));
-        const demos: Omit<User, "id">[] = [
-          {
-            username: "designer",
-            password: "password",
-            role: "travel_designer",
-            fullName: "Travel Designer",
-          },
-          {
-            username: "sales",
-            password: "password",
-            role: "sales_agent",
-            fullName: "Sales Agent",
-          },
-          {
-            username: "viewer",
-            password: "password",
-            role: "viewer",
-            fullName: "Viewer",
-          },
-        ];
-        const toAdd = demos.filter((u) => !existing.has(u.username));
+        const toAdd = mockUsers.filter((u) => !existing.has(u.username));
         if (!toAdd.length) return;
         set({
-          users: [...get().users, ...toAdd.map((u) => ({ ...u, id: generateId() }))],
+          users: [...get().users, ...toAdd.map((u) => ({ ...u }))],
         });
       },
       ensureAdmin: () => {

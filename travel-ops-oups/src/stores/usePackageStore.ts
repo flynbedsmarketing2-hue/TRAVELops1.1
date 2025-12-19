@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { OpsProject, TravelPackage } from "../types";
+import { mockPackages } from "../lib/mockData";
 import { generateId, makePersistStorage } from "./storeUtils";
 
 type PackageStore = {
@@ -109,10 +110,15 @@ function normalizeImportedPackage(pkg: TravelPackage): TravelPackage {
   return normalized;
 }
 
+const seedPackages: TravelPackage[] = mockPackages.map((pkg) => ({
+  ...pkg,
+  opsProject: pkg.opsProject ?? buildOpsProject(pkg),
+}));
+
 export const usePackageStore = create<PackageStore>()(
   persist(
     (set, get) => ({
-      packages: [],
+      packages: seedPackages,
 
       addPackage: (pkg) => {
         const newPackage: TravelPackage = { ...pkg, id: generateId() };
@@ -375,4 +381,3 @@ export const usePackageStore = create<PackageStore>()(
     }
   )
 );
-
