@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Travel Ops
 
-## Getting Started
+Modern Next.js back-office for TravelOps built with the App Router, Tailwind CSS, and TypeScript.
 
-First, run the development server:
+## Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 20+
+- npm 10+
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Install dependencies
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npm install
+   ```
 
-## Learn More
+2. Copy the example environment file and adjust values as needed:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   cp .env.example .env.local
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Start the development server
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   npm run dev
+   ```
 
-## Deploy on Vercel
+   The app will be available at [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Available scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` – start the development server
+- `npm run lint` – run ESLint with the project config (Next.js + TypeScript + Prettier)
+- `npm run format` – format the codebase with Prettier
+- `npm run typecheck` – run TypeScript type checking (`tsc --noEmit`)
+- `npm run build` – create a production build
+- `npm start` – serve the production build
+
+## Development standards
+
+- Prettier is configured in `prettier.config.mjs` to keep formatting consistent across the repo.
+- ESLint uses the Next.js core web vitals and TypeScript presets, plus Prettier compatibility via `eslint-config-prettier`.
+- Temporary dev logs (`dev-err.log`, `dev-out.log`) and local env files are ignored by git; use `.env.example` as a starting point.
+
+## Continuous integration
+
+A GitHub Actions workflow runs dependency installation, linting, type-checking, and builds on every pull request so changes stay production-ready.
