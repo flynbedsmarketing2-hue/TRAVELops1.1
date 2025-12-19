@@ -106,7 +106,9 @@ export interface OpsTimelineItem {
 export interface OpsGroup {
   id: string;
   flightLabel: string;
+  airline?: string;
   departureDate?: string;
+  returnDate?: string;
   status: OpsStatus;
   validationDate?: string;
   suppliers: Supplier[];
@@ -169,4 +171,3 @@ export interface Booking {
   payment: BookingPayment;
   createdAt: string;
 }
-

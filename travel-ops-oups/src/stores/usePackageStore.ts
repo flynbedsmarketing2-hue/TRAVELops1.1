@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { OpsProject, TravelPackage } from "../types";
+import type { FlightSegment, OpsProject, TravelPackage } from "../types";
 import { mockPackages } from "../lib/mockData";
 import { generateId, makePersistStorage } from "./storeUtils";
 
@@ -60,28 +60,95 @@ type PackageStore = {
 
 const storage = makePersistStorage();
 
-function buildOpsProject(pkg: TravelPackage): OpsProject {
+const formatFlightLabel = (flight: FlightSegment) => `${flight.airline} - départ ${flight.departureDate}`;
+
+const flightStructureKey = (flight: FlightSegment) =>
+  `${flight.departureDate || ""}|${flight.airline || ""}|${flight.returnDate || ""}`;
+
+const groupStructureKey = (group: OpsProject["groups"][number]) =>
+  `${group.departureDate || ""}|${group.airline || ""}|${group.returnDate || ""}`;
+
+const hasFlightStructureChanged = (previousFlights: FlightSegment[], nextFlights: FlightSegment[]) => {
+  if (previousFlights.length !== nextFlights.length) return true;
+  const previousCounts = new Map<string, number>();
+  previousFlights.forEach((flight) => {
+    const key = flightStructureKey(flight);
+    previousCounts.set(key, (previousCounts.get(key) ?? 0) + 1);
+  });
+
+  const nextCounts = new Map<string, number>();
+  nextFlights.forEach((flight) => {
+    const key = flightStructureKey(flight);
+    nextCounts.set(key, (nextCounts.get(key) ?? 0) + 1);
+  });
+
+  if (previousCounts.size !== nextCounts.size) return true;
+  for (const [key, count] of previousCounts) {
+    if (nextCounts.get(key) !== count) return true;
+  }
+  return false;
+};
+
+function buildOpsGroupFromFlight(flight: FlightSegment, idx: number): OpsProject["groups"][number] {
   return {
     id: generateId(),
-    packageId: pkg.id,
-    groups: pkg.flights.flights.map((flight, idx) => ({
-      id: generateId(),
-      flightLabel: `${flight.airline} - départ ${flight.departureDate}`,
-      departureDate: flight.departureDate,
-      status: "pending_validation",
-      validationDate: undefined,
-      suppliers: [],
-      costs: [],
-      timeline: [
-        {
-          title: "Groupe créé",
-          date: new Date().toISOString(),
-          note: `Vol ${idx + 1}`,
-          kind: "info",
-        },
-      ],
-    })),
+    flightLabel: formatFlightLabel(flight),
+    airline: flight.airline,
+    departureDate: flight.departureDate,
+    returnDate: flight.returnDate,
+    status: "pending_validation",
+    validationDate: undefined,
+    suppliers: [],
+    costs: [],
+    timeline: [
+      {
+        title: "Groupe créé",
+        date: new Date().toISOString(),
+        note: `Vol ${idx + 1}`,
+        kind: "info",
+      },
+    ],
   };
+}
+
+function mergeOpsProject(existingOps: OpsProject | undefined, pkg: TravelPackage): OpsProject {
+  const groupsByKey = new Map<string, OpsProject["groups"][number]>();
+  const registerGroupKey = (key: string, group: OpsProject["groups"][number]) => {
+    if (!groupsByKey.has(key)) groupsByKey.set(key, group);
+  };
+  existingOps?.groups.forEach((group) => {
+    const baseKey = groupStructureKey(group);
+    registerGroupKey(baseKey, group);
+    if (group.departureDate) {
+      registerGroupKey(`${group.departureDate}|${group.airline || ""}|`, group);
+      registerGroupKey(`${group.departureDate}||`, group);
+    }
+  });
+
+  const mergedGroups = pkg.flights.flights.map((flight, idx) => {
+    const key = flightStructureKey(flight);
+    const existing = groupsByKey.get(key);
+    if (existing) {
+      return {
+        ...existing,
+        flightLabel: formatFlightLabel(flight),
+        airline: flight.airline,
+        departureDate: flight.departureDate,
+        returnDate: flight.returnDate,
+      };
+    }
+    return buildOpsGroupFromFlight(flight, idx);
+  });
+
+  return {
+    id: existingOps?.id ?? generateId(),
+    packageId: pkg.id,
+    groups: mergedGroups,
+  };
+}
+
+function buildOpsProject(pkg: TravelPackage): OpsProject {
+  return mergeOpsProject(undefined, pkg);
 }
 
 function normalizeImportedPackage(pkg: TravelPackage): TravelPackage {
@@ -102,6 +169,8 @@ function normalizeImportedPackage(pkg: TravelPackage): TravelPackage {
             costs: g.costs ?? [],
             timeline: g.timeline ?? [],
             departureDate: g.departureDate ?? undefined,
+            returnDate: g.returnDate ?? undefined,
+            airline: g.airline ?? undefined,
           })),
         }
       : undefined,
@@ -137,7 +206,13 @@ export const usePackageStore = create<PackageStore>()(
             if (pkg.id !== id) return pkg;
             updatedPackage = { ...pkg, ...updater };
             if (updater.flights) {
-              updatedPackage.opsProject = buildOpsProject(updatedPackage);
+              const structureChanged = hasFlightStructureChanged(
+                pkg.flights.flights,
+                updatedPackage.flights.flights
+              );
+              if (structureChanged) {
+                updatedPackage.opsProject = mergeOpsProject(pkg.opsProject, updatedPackage);
+              }
             }
             return updatedPackage;
           }),
