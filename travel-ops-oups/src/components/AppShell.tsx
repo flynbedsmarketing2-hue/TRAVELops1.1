@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -10,13 +10,38 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { currentUser } = useUserStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    const syncInertState = () => {
+      const isAriaHidden =
+        node.getAttribute("aria-hidden") === "true" || node.getAttribute("data-aria-hidden") === "true";
+      if (isAriaHidden) {
+        node.setAttribute("inert", "true");
+      } else {
+        node.removeAttribute("inert");
+      }
+    };
+
+    syncInertState();
+    const observer = new MutationObserver(syncInertState);
+    observer.observe(node, { attributes: true, attributeFilter: ["aria-hidden", "data-aria-hidden"] });
+    return () => observer.disconnect();
+  }, []);
 
   if (pathname === "/login") {
-    return <main className="px-6 py-10">{children}</main>;
+    return (
+      <main id="main-content" role="main" className="px-6 py-10">
+        {children}
+      </main>
+    );
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div ref={containerRef} className="flex min-h-screen">
       {currentUser ? (
         <>
           <Sidebar
@@ -37,11 +62,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
-        <main className="flex-1 px-6 py-8 lg:px-10">
+        <main id="main-content" role="main" className="flex-1 px-6 py-8 lg:px-10">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
       </div>
     </div>
   );
 }
-
