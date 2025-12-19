@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ImageUp, Plus, Save, Trash2 } from "lucide-react";
 import type { TravelPackage } from "../types";
+import { DEFAULT_RESPONSIBLE_NAME, generateProductCode, todayISO } from "../lib/packageDefaults";
 import { usePackageStore } from "../stores/usePackageStore";
 
 type Mode = "create" | "edit";
@@ -13,10 +14,12 @@ type Props = {
   initialPackage?: TravelPackage;
 };
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-
 const INPUT =
   "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-100";
+
+const READONLY_INPUT =
+  INPUT +
+  " cursor-not-allowed bg-slate-50 text-slate-500 dark:bg-slate-900/40 dark:text-slate-400 focus:border-slate-200 focus:ring-0 dark:focus:border-slate-800";
 
 const TEXTAREA =
   "mt-1 min-h-[96px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-100";
@@ -26,8 +29,8 @@ const emptyPackage = (): TravelPackage => ({
   status: "draft",
   general: {
     productName: "",
-    productCode: "",
-    responsible: "",
+    productCode: generateProductCode(),
+    responsible: DEFAULT_RESPONSIBLE_NAME,
     creationDate: todayISO(),
     imageUrl: "",
     stock: 0,
@@ -66,7 +69,18 @@ export function PackageEditor({ mode, initialPackage }: Props) {
   const { addPackage, updatePackage, setPackageStatus } = usePackageStore();
 
   const isEdit = mode === "edit";
-  const [form, setForm] = useState<TravelPackage>(() => initialPackage ?? emptyPackage());
+  const [form, setForm] = useState<TravelPackage>(() => {
+    const base = initialPackage ?? emptyPackage();
+    return {
+      ...base,
+      general: {
+        ...base.general,
+        productCode: base.general.productCode || generateProductCode(),
+        responsible: base.general.responsible || DEFAULT_RESPONSIBLE_NAME,
+        creationDate: base.general.creationDate || todayISO(),
+      },
+    };
+  });
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -209,29 +223,29 @@ export function PackageEditor({ mode, initialPackage }: Props) {
               <Field label="Code produit">
                 <input
                   value={form.general.productCode}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, general: { ...p.general, productCode: e.target.value } }))
-                  }
-                  className={INPUT}
+                  readOnly
+                  aria-readonly="true"
+                  title="Champ rempli automatiquement"
+                  className={READONLY_INPUT}
                 />
               </Field>
               <Field label="Responsable">
                 <input
                   value={form.general.responsible}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, general: { ...p.general, responsible: e.target.value } }))
-                  }
-                  className={INPUT}
+                  readOnly
+                  aria-readonly="true"
+                  title="Champ rempli automatiquement"
+                  className={READONLY_INPUT}
                 />
               </Field>
               <Field label="Date de création">
                 <input
                   type="date"
                   value={form.general.creationDate}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, general: { ...p.general, creationDate: e.target.value } }))
-                  }
-                  className={INPUT}
+                  readOnly
+                  aria-readonly="true"
+                  title="Champ rempli automatiquement"
+                  className={READONLY_INPUT}
                 />
               </Field>
               <Field label="Stock (pax)">
@@ -244,7 +258,7 @@ export function PackageEditor({ mode, initialPackage }: Props) {
                   className={INPUT}
                 />
               </Field>
-              <Field label="Image (URL ou base64)">
+              <Field label="Image (URL ou fichier)">
                 <input
                   value={form.general.imageUrl ?? ""}
                   onChange={(e) =>
@@ -257,7 +271,7 @@ export function PackageEditor({ mode, initialPackage }: Props) {
               <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-dashed border-slate-200 px-3 py-2 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200 md:col-span-2">
                 <span className="flex items-center gap-2">
                   <ImageUp className="h-4 w-4 text-primary" />
-                  Upload image (base64)
+                  Uploader une image
                 </span>
                 <input
                   type="file"
@@ -916,7 +930,7 @@ export function PackageEditor({ mode, initialPackage }: Props) {
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>Publié est bloqué si des champs obligatoires manquent.</li>
               <li>Modifier les vols régénère automatiquement les groupes Ops.</li>
-              <li>Images: URL ou base64.</li>
+              <li>Images: URL ou fichier.</li>
             </ul>
           </div>
         </aside>
