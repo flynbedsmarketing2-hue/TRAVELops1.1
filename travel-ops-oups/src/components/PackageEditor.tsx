@@ -794,48 +794,55 @@ export function PackageEditor({ mode, initialPackage }: Props) {
             </label>
 
             <div className="space-y-3">
-              {form.itinerary.days.map((d, idx) => (
-                <div key={idx} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Jour {d.dayNumber}</p>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm((p) => {
-                          const nextDays = p.itinerary.days
-                            .filter((_, i) => i !== idx)
-                            .map((x, i) => ({ ...x, dayNumber: i + 1 }));
-                          return {
-                            ...p,
-                            itinerary: {
-                              ...p.itinerary,
-                              days: nextDays.length ? nextDays : [{ dayNumber: 1, description: "" }],
-                            },
-                          };
-                        })
+              {form.itinerary.days.map((d, idx) => {
+                const dayDescriptionId = `day-description-${idx}`;
+                return (
+                  <div key={idx} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Jour {d.dayNumber}</p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm((p) => {
+                            const nextDays = p.itinerary.days
+                              .filter((_, i) => i !== idx)
+                              .map((x, i) => ({ ...x, dayNumber: i + 1 }));
+                            return {
+                              ...p,
+                              itinerary: {
+                                ...p.itinerary,
+                                days: nextDays.length ? nextDays : [{ dayNumber: 1, description: "" }],
+                              },
+                            };
+                          })
+                        }
+                        className="text-xs font-semibold text-red-600"
+                      >
+                        Suppr.
+                      </button>
+                    </div>
+                    <label className="mt-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500" htmlFor={dayDescriptionId}>
+                      Description du jour {d.dayNumber}
+                    </label>
+                    <textarea
+                      id={dayDescriptionId}
+                      value={d.description}
+                      onChange={(e) =>
+                        setForm((p) => ({
+                          ...p,
+                          itinerary: {
+                            ...p.itinerary,
+                            days: p.itinerary.days.map((x, i) =>
+                              i === idx ? { ...x, description: e.target.value } : x
+                            ),
+                          },
+                        }))
                       }
-                      className="text-xs font-semibold text-red-600"
-                    >
-                      Suppr.
-                    </button>
+                      className={TEXTAREA}
+                    />
                   </div>
-                  <textarea
-                    value={d.description}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        itinerary: {
-                          ...p.itinerary,
-                          days: p.itinerary.days.map((x, i) =>
-                            i === idx ? { ...x, description: e.target.value } : x
-                          ),
-                        },
-                      }))
-                    }
-                    className={TEXTAREA}
-                  />
-                </div>
-              ))}
+                );
+              })}
               <button
                 type="button"
                 onClick={() =>
