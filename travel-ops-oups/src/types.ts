@@ -161,6 +161,7 @@ export interface BookingPayment {
 export interface Booking {
   id: string;
   packageId: string;
+  departureGroupId?: string;
   bookingType: BookingType;
   reservedUntil?: string;
   rooms: BookingRoom[];
@@ -169,4 +170,3 @@ export interface Booking {
   payment: BookingPayment;
   createdAt: string;
 }
-

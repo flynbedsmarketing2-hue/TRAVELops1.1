@@ -38,6 +38,7 @@ type Html2PdfFactory = () => Html2PdfWorker;
 
 const defaultBooking = (packageId: string | undefined): BookingDraft => ({
   packageId: packageId ?? "",
+  departureGroupId: "",
   bookingType: "En option",
   reservedUntil: "",
   rooms: [

@@ -2,21 +2,24 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { makePersistStorage } from "./storeUtils";
+import { CURRENT_SCHEMA_VERSION } from "./migrations";
+import { withPersistMigrations } from "./storeUtils";
 
 export type ThemeMode = "light" | "dark";
 
 type UiStore = {
+  schemaVersion: number;
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
   toggleTheme: () => void;
 };
 
-const storage = makePersistStorage();
+const persistConfig = withPersistMigrations<UiStore>("travelops-ui-store");
 
 export const useUiStore = create<UiStore>()(
   persist(
     (set, get) => ({
+      schemaVersion: CURRENT_SCHEMA_VERSION,
       theme: "light",
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => {
@@ -24,10 +27,6 @@ export const useUiStore = create<UiStore>()(
         set({ theme: next });
       },
     }),
-    {
-      name: "travelops-ui-store",
-      storage,
-    }
+    persistConfig
   )
 );
-

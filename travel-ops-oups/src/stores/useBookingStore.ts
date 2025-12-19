@@ -4,10 +4,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { mockBookings } from "../lib/mockData";
 import type { Booking } from "../types";
-import { generateId, makePersistStorage } from "./storeUtils";
+import { CURRENT_SCHEMA_VERSION } from "./migrations";
+import { generateId, withPersistMigrations } from "./storeUtils";
 
 type BookingStore = {
   bookings: Booking[];
+  schemaVersion: number;
   addBooking: (booking: Omit<Booking, "id" | "createdAt">) => Booking;
   updateBooking: (
     id: string,
@@ -17,15 +19,17 @@ type BookingStore = {
   reset: () => void;
 };
 
-const storage = makePersistStorage();
+const persistConfig = withPersistMigrations<BookingStore>("travelops-bookings-store");
 
 export const useBookingStore = create<BookingStore>()(
   persist(
     (set, get) => ({
       bookings: [...mockBookings],
+      schemaVersion: CURRENT_SCHEMA_VERSION,
       addBooking: (booking) => {
         const newBooking: Booking = {
           ...booking,
+          departureGroupId: booking.departureGroupId ?? undefined,
           id: generateId(),
           createdAt: new Date().toISOString(),
         };
@@ -45,11 +49,8 @@ export const useBookingStore = create<BookingStore>()(
       },
       deleteBooking: (id) =>
         set({ bookings: get().bookings.filter((booking) => booking.id !== id) }),
-      reset: () => set({ bookings: [] }),
+      reset: () => set({ bookings: [], schemaVersion: CURRENT_SCHEMA_VERSION }),
     }),
-    {
-      name: "travelops-bookings-store",
-      storage,
-    }
+    persistConfig
   )
 );

@@ -4,10 +4,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { OpsProject, TravelPackage } from "../types";
 import { mockPackages } from "../lib/mockData";
-import { generateId, makePersistStorage } from "./storeUtils";
+import { CURRENT_SCHEMA_VERSION } from "./migrations";
+import { generateId, withPersistMigrations } from "./storeUtils";
 
 type PackageStore = {
   packages: TravelPackage[];
+  schemaVersion: number;
   addPackage: (pkg: Omit<TravelPackage, "id" | "opsProject">) => TravelPackage;
   updatePackage: (id: string, updater: Partial<TravelPackage>) => TravelPackage | null;
   deletePackage: (id: string) => void;
@@ -58,7 +60,7 @@ type PackageStore = {
   reset: () => void;
 };
 
-const storage = makePersistStorage();
+const persistConfig = withPersistMigrations<PackageStore>("travelops-packages-store");
 
 function buildOpsProject(pkg: TravelPackage): OpsProject {
   return {
@@ -119,6 +121,7 @@ export const usePackageStore = create<PackageStore>()(
   persist(
     (set, get) => ({
       packages: seedPackages,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
 
       addPackage: (pkg) => {
         const newPackage: TravelPackage = { ...pkg, id: generateId() };
@@ -373,11 +376,8 @@ export const usePackageStore = create<PackageStore>()(
           }),
         }),
 
-      reset: () => set({ packages: [] }),
+      reset: () => set({ packages: [], schemaVersion: CURRENT_SCHEMA_VERSION }),
     }),
-    {
-      name: "travelops-packages-store",
-      storage,
-    }
+    persistConfig
   )
 );

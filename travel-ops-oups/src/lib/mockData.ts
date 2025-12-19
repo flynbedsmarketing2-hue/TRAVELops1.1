@@ -285,6 +285,7 @@ export const mockBookings: Booking[] = [
   {
     id: "bkg-lis-001",
     packageId: "pkg-lisbonne-0625",
+    departureGroupId: "ops-lis-1",
     bookingType: "Confirmée",
     rooms: [
       { roomType: "Double", occupants: [{ type: "ADL", name: "Samir M." }, { type: "ADL", name: "Amel K." }] },
@@ -307,6 +308,7 @@ export const mockBookings: Booking[] = [
   {
     id: "bkg-lis-002",
     packageId: "pkg-lisbonne-0625",
+    departureGroupId: "ops-lis-2",
     bookingType: "En option",
     reservedUntil: "2025-05-12",
     rooms: [
@@ -330,6 +332,7 @@ export const mockBookings: Booking[] = [
   {
     id: "bkg-sahara-001",
     packageId: "pkg-sahara-1125",
+    departureGroupId: "ops-sahara-1",
     bookingType: "Confirmée",
     rooms: [
       { roomType: "Twin", occupants: [{ type: "ADL", name: "Imene L." }, { type: "ADL", name: "Lamia L." }] },

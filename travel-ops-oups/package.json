@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsc --noEmit false --module commonjs --moduleResolution node --target ES2019 --outDir build-tests tests/migrations.test.ts && node build-tests/tests/migrations.test.js"
   },
   "dependencies": {
     "html2pdf.js": "^0.12.1",

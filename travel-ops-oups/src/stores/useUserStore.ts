@@ -4,7 +4,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { mockUsers } from "../lib/mockData";
 import type { User } from "../types";
-import { generateId, makePersistStorage } from "./storeUtils";
+import { CURRENT_SCHEMA_VERSION } from "./migrations";
+import { generateId, withPersistMigrations } from "./storeUtils";
 
 type AuthResult = {
   success: boolean;
@@ -22,6 +23,7 @@ type UserStore = {
   resetPassword: (id: string, newPassword: string) => boolean;
   seedDemoUsers: () => void;
   ensureAdmin: () => void;
+  schemaVersion: number;
 };
 
 const defaultAdmin: User = {
@@ -34,13 +36,18 @@ const defaultAdmin: User = {
 
 const seedUsers: User[] = [defaultAdmin, ...mockUsers];
 
-const storage = makePersistStorage();
+const persistConfig = withPersistMigrations<UserStore>("travelops-user-store", {
+  onRehydrateStorage: () => (state) => {
+    state?.ensureAdmin();
+  },
+});
 
 export const useUserStore = create<UserStore>()(
   persist(
     (set, get) => ({
       users: seedUsers,
       currentUser: null,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
       login: (username, password) => {
         const found = get().users.find(
           (user) => user.username === username && user.password === password
@@ -99,13 +106,6 @@ export const useUserStore = create<UserStore>()(
         }
       },
     }),
-    {
-      name: "travelops-user-store",
-      storage,
-      skipHydration: false,
-      onRehydrateStorage: () => (state) => {
-        state?.ensureAdmin();
-      },
-    }
+    { ...persistConfig, skipHydration: false }
   )
 );
