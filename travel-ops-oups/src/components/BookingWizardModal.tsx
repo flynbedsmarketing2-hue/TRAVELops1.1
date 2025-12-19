@@ -248,7 +248,7 @@ export default function BookingWizardModal({
                 <div className="flex items-center gap-2">
                   <FileUp className="h-5 w-5 text-primary" />
                   <h4 className="font-heading text-lg font-semibold text-slate-900">
-                    Uploads (base64)
+                    Uploads
                   </h4>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">

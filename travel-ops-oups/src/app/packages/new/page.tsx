@@ -3,14 +3,7 @@
 import AuthGuard from "../../../components/AuthGuard";
 import { PackageEditor } from "../../../components/PackageEditor";
 import type { TravelPackage } from "../../../types";
-
-const todayISO = () => new Date().toISOString().slice(0, 10);
-
-const generateProductCode = () => {
-  const datePart = new Date().toISOString().slice(0, 10).replaceAll("-", "");
-  const randomPart = Math.random().toString(36).slice(-4).toUpperCase();
-  return `PKG-${datePart}-${randomPart}`;
-};
+import { DEFAULT_RESPONSIBLE_NAME, generateProductCode, todayISO } from "../../../lib/packageDefaults";
 
 const defaultPackage: TravelPackage = {
   id: "new-package",
@@ -18,7 +11,7 @@ const defaultPackage: TravelPackage = {
   general: {
     productName: "",
     productCode: generateProductCode(),
-    responsible: "Responsable principal",
+    responsible: DEFAULT_RESPONSIBLE_NAME,
     creationDate: todayISO(),
     imageUrl: "https://placehold.co/600x400?text=Package",
     stock: 20,
