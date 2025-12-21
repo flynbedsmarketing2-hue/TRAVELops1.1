@@ -9,13 +9,17 @@ import {
   Plane,
   ShoppingCart,
   Telescope,
+  LayoutPanelTop,
+  Globe,
+  Warehouse,
+  Megaphone,
   Users,
   LogOut,
   LogIn,
   Moon,
   Sun,
 } from "lucide-react";
-import { useUserStore } from "../stores/useUserStore";
+import { signOut, useSession } from "next-auth/react";
 import { useUiStore } from "../stores/useUiStore";
 import type { UserRole } from "../types";
 
@@ -58,6 +62,30 @@ const navItems: NavItem[] = [
     roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
   },
   {
+    label: "Factory",
+    href: "/factory",
+    icon: LayoutPanelTop,
+    roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
+  },
+  {
+    label: "Intelligence",
+    href: "/intelligence",
+    icon: Globe,
+    roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
+  },
+  {
+    label: "Suppliers",
+    href: "/suppliers",
+    icon: Warehouse,
+    roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
+  },
+  {
+    label: "Publishing",
+    href: "/publishing",
+    icon: Megaphone,
+    roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
+  },
+  {
     label: "Users",
     href: "/users",
     icon: Users,
@@ -70,7 +98,7 @@ const isActive = (pathname: string, href: string) =>
 
 export default function Header() {
   const pathname = usePathname();
-  const { currentUser, logout } = useUserStore();
+  const { data: session } = useSession();
   const { theme, toggleTheme } = useUiStore();
 
   if (pathname === "/login") {
@@ -90,7 +118,9 @@ export default function Header() {
 
         <nav className="flex items-center gap-2">
           {navItems
-            .filter((item) => (currentUser ? item.roles.includes(currentUser.role) : false))
+            .filter((item) =>
+              session?.user?.role ? item.roles.includes(session.user.role as UserRole) : false
+            )
             .map((item) => {
               const Icon = item.icon;
               const active = isActive(pathname, item.href);
@@ -122,13 +152,13 @@ export default function Header() {
             {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </button>
 
-          {currentUser ? (
+          {session?.user ? (
             <>
               <span className="hidden text-sm text-slate-600 md:inline dark:text-slate-300">
-                {currentUser.username} · {currentUser.role}
+                {session.user.username} - {session.user.role}
               </span>
               <button
-                onClick={logout}
+                onClick={() => signOut()}
                 className="flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
               >
                 <LogOut className="h-4 w-4" />

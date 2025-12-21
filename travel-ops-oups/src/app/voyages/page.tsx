@@ -4,19 +4,19 @@
 
 import Link from "next/link";
 import { Plane } from "lucide-react";
+import { useSession } from "next-auth/react";
 import AuthGuard from "../../components/AuthGuard";
 import PageHeader from "../../components/PageHeader";
 import { buttonClassName } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
-import { usePackageStore } from "../../stores/usePackageStore";
-import { useUserStore } from "../../stores/useUserStore";
+import { usePackages } from "../../hooks/usePackages";
 
 export default function VoyagesPage() {
-  const { packages } = usePackageStore();
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession();
+  const { packages } = usePackages();
 
   const published = packages.filter((pkg) => pkg.status === "published");
-  const canBook = currentUser?.role === "sales_agent" || currentUser?.role === "administrator";
+  const canBook = session?.user?.role === "sales_agent" || session?.user?.role === "administrator";
 
   return (
     <AuthGuard allowRoles={["administrator", "travel_designer", "sales_agent", "viewer"]}>

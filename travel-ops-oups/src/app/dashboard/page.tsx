@@ -12,14 +12,14 @@ import {
   ShoppingBag,
   TrendingUp,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import AuthGuard from "../../components/AuthGuard";
 import PageHeader from "../../components/PageHeader";
 import { cn } from "../../components/ui/cn";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { buttonClassName } from "../../components/ui/button";
-import { useBookingStore } from "../../stores/useBookingStore";
-import { usePackageStore } from "../../stores/usePackageStore";
-import { useUserStore } from "../../stores/useUserStore";
+import { useBookings } from "../../hooks/useBookings";
+import { usePackages } from "../../hooks/usePackages";
 
 const isSoon = (iso: string | undefined, days = 7) => {
   if (!iso) return false;
@@ -30,9 +30,9 @@ const isSoon = (iso: string | undefined, days = 7) => {
 };
 
 export default function DashboardPage() {
-  const { currentUser } = useUserStore();
-  const { packages } = usePackageStore();
-  const { bookings } = useBookingStore();
+  const { data: session } = useSession();
+  const { packages } = usePackages();
+  const { bookings } = useBookings();
 
   const publishedPkgs = packages.filter((pkg) => pkg.status === "published");
   const draftPkgs = packages.filter((pkg) => pkg.status === "draft");
@@ -85,7 +85,7 @@ export default function DashboardPage() {
   if (optionExpiring.length) todos.push(`${optionExpiring.length} option(s) a confirmer`);
   if (!todos.length) todos.push("Rien a traiter.");
 
-  const role = currentUser?.role;
+  const role = session?.user?.role;
   const roleTag =
     role === "administrator"
       ? "admin"
@@ -104,7 +104,7 @@ export default function DashboardPage() {
       <div className="space-y-8">
         <PageHeader
           eyebrow={`Dashboard - ${roleTag}`}
-          title={`Bonjour ${currentUser?.username ?? "invite"}`}
+          title={`Bonjour ${session?.user?.username ?? "invite"}`}
           subtitle="Vue rapide des packages, ventes et ops."
           actions={
             <>
@@ -113,6 +113,9 @@ export default function DashboardPage() {
               </Link>
               <Link href="/sales" className={buttonClassName({ variant: "outline" })}>
                 Ventes
+              </Link>
+              <Link href="/analytics" className={buttonClassName({ variant: "outline" })}>
+                Analytics
               </Link>
             </>
           }

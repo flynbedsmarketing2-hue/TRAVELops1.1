@@ -5,14 +5,15 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { Copy, Download, Plus, Search, Trash2, Upload } from "lucide-react";
+import { useSession } from "next-auth/react";
 import AuthGuard from "../../components/AuthGuard";
 import PageHeader from "../../components/PageHeader";
 import { Button, buttonClassName } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { cn } from "../../components/ui/cn";
 import { Input } from "../../components/ui/input";
-import { usePackageStore } from "../../stores/usePackageStore";
-import { useUserStore } from "../../stores/useUserStore";
+import { apiFetch } from "../../lib/apiClient";
+import { usePackages } from "../../hooks/usePackages";
 import type { TravelPackage } from "../../types";
 
 type StatusFilter = "all" | "published" | "draft";
@@ -78,15 +79,15 @@ function Kpi({ label, value }: { label: string; value: number }) {
 }
 
 export default function PackagesPage() {
-  const { packages, duplicatePackage, deletePackage, importPackages, exportPackages } = usePackageStore();
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession();
+  const { packages, mutate } = usePackages();
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
 
-  const canEdit = currentUser?.role === "administrator" || currentUser?.role === "travel_designer";
+  const canEdit = session?.user?.role === "administrator" || session?.user?.role === "travel_designer";
 
   const stats = useMemo(() => {
     const total = packages.length;
@@ -119,13 +120,13 @@ export default function PackagesPage() {
         <PageHeader
           eyebrow="Packages"
           title="Gestion des offres"
-          subtitle="Filtres rapides, import/export JSON, creation en local."
+          subtitle="Filtres rapides, import/export JSON, edition et duplication."
           actions={
             <>
               <Button
                 variant="outline"
                 onClick={() => {
-                  const data = exportPackages();
+                  const data = packages;
                   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
@@ -162,8 +163,18 @@ export default function PackagesPage() {
                     const mode = window.confirm("Remplacer les packages existants ? (OK = replace, Annuler = merge)")
                       ? "replace"
                       : "merge";
-                    const count = importPackages(imported, mode);
-                    window.alert(`Import termine : ${count} package(s).`);
+                    if (mode === "replace") {
+                      await Promise.all(packages.map((pkg) => apiFetch(`/api/packages/${pkg.id}`, { method: "DELETE" })));
+                    }
+                    for (const pkg of imported) {
+                      const { id, opsProject, ...rest } = pkg;
+                      await apiFetch("/api/packages", {
+                        method: "POST",
+                        body: JSON.stringify(rest),
+                      });
+                    }
+                    await mutate();
+                    window.alert(`Import termine : ${imported.length} package(s).`);
                   } catch {
                     window.alert("JSON invalide.");
                   } finally {
@@ -287,9 +298,22 @@ export default function PackagesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const copyOps = window.confirm("Dupliquer avec les ops existants ? (OK = copier, Annuler = regenerer)");
-                          duplicatePackage(pkg.id, { copyOps });
+                        onClick={async () => {
+                          const copyOps = window.confirm(
+                            "Dupliquer avec les ops existants ? (OK = copier, Annuler = regenerer)"
+                          );
+                          const payload = {
+                            ...pkg,
+                            general: {
+                              ...pkg.general,
+                              productCode: `${pkg.general.productCode}-COPY`,
+                              productName: `${pkg.general.productName} (Copy)`,
+                            },
+                          };
+                          if (!copyOps) delete (payload as TravelPackage).opsProject;
+                          const { id, opsProject, ...rest } = payload;
+                          await apiFetch("/api/packages", { method: "POST", body: JSON.stringify(rest) });
+                          await mutate();
                         }}
                       >
                         <Copy className="h-4 w-4" />
@@ -299,9 +323,10 @@ export default function PackagesPage() {
                       <Button
                         variant="danger"
                         size="sm"
-                        onClick={() => {
+                        onClick={async () => {
                           if (!window.confirm("Supprimer ce package ?")) return;
-                          deletePackage(pkg.id);
+                          await apiFetch(`/api/packages/${pkg.id}`, { method: "DELETE" });
+                          await mutate();
                         }}
                       >
                         <Trash2 className="h-4 w-4" />

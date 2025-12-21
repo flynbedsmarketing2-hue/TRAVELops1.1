@@ -49,6 +49,7 @@ const defaultPackage: TravelPackage = {
     excursionsIncluded: ["Tour de ville"],
     excursionsExtra: ["Croisière sur la Seine"],
   },
+  metadata: {},
   itinerary: {
     active: true,
     days: [

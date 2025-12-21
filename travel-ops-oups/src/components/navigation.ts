@@ -2,9 +2,13 @@ import type { ComponentType } from "react";
 import {
   Briefcase,
   LayoutDashboard,
+  LayoutPanelTop,
   Plane,
   ShoppingCart,
   Telescope,
+  Warehouse,
+  Globe,
+  Megaphone,
   Users,
 } from "lucide-react";
 import type { UserRole } from "../types";
@@ -45,6 +49,30 @@ export const navItems: NavItem[] = [
     label: "Ops",
     href: "/ops",
     icon: Telescope,
+    roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
+  },
+  {
+    label: "Factory",
+    href: "/factory",
+    icon: LayoutPanelTop,
+    roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
+  },
+  {
+    label: "Intelligence",
+    href: "/intelligence",
+    icon: Globe,
+    roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
+  },
+  {
+    label: "Suppliers",
+    href: "/suppliers",
+    icon: Warehouse,
+    roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
+  },
+  {
+    label: "Publishing",
+    href: "/publishing",
+    icon: Megaphone,
     roles: ["administrator", "travel_designer", "sales_agent", "viewer"],
   },
   {

@@ -3,8 +3,8 @@
 import { LogOut, Menu, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import { useUiStore } from "../stores/useUiStore";
-import { useUserStore } from "../stores/useUserStore";
 import { Button } from "./ui/button";
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
 
 export default function Topbar({ onOpenSidebar }: Props) {
   const pathname = usePathname();
-  const { currentUser, logout } = useUserStore();
+  const { data: session } = useSession();
   const { theme, toggleTheme } = useUiStore();
 
   if (pathname === "/login") return null;
@@ -51,12 +51,12 @@ export default function Topbar({ onOpenSidebar }: Props) {
             {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </Button>
 
-          {currentUser ? (
+          {session?.user ? (
             <>
               <span className="hidden text-sm text-slate-600 dark:text-slate-300 md:inline">
-                {currentUser.username} · {currentUser.role}
+                {session.user.username} - {session.user.role}
               </span>
-              <Button variant="secondary" onClick={() => logout()} aria-label="Se déconnecter">
+              <Button variant="secondary" onClick={() => signOut()} aria-label="Se deconnecter">
                 <LogOut className="h-4 w-4" />
               </Button>
             </>

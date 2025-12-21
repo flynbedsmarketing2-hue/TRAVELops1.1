@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
-import { useUserStore } from "../stores/useUserStore";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -42,10 +42,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div ref={containerRef} className="flex min-h-screen">
-      {currentUser ? (
+      {session?.user ? (
         <>
           <Sidebar
-            role={currentUser.role}
+            role={session.user.role as "administrator" | "travel_designer" | "sales_agent" | "viewer"}
             open={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
           />

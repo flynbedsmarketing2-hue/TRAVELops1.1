@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CheckCircle2, Clock, Search, ShieldCheck, Telescope } from "lucide-react";
+import { useSession } from "next-auth/react";
 import AuthGuard from "../../components/AuthGuard";
 import PageHeader from "../../components/PageHeader";
 import { Button, buttonClassName } from "../../components/ui/button";
@@ -11,8 +12,8 @@ import { cn } from "../../components/ui/cn";
 import { Input } from "../../components/ui/input";
 import { Table, TBody, TD, THead, TH, TR } from "../../components/ui/table";
 import { daysUntil, groupAlerts } from "../../lib/ops";
-import { usePackageStore } from "../../stores/usePackageStore";
-import { useUserStore } from "../../stores/useUserStore";
+import { apiFetch } from "../../lib/apiClient";
+import { usePackages } from "../../hooks/usePackages";
 import type { OpsGroup, OpsStatus, TravelPackage } from "../../types";
 
 type StatusFilter = "all" | OpsStatus;
@@ -69,10 +70,10 @@ function ChipButton({
 }
 
 export default function OpsPage() {
-  const { currentUser } = useUserStore();
-  const { packages, updateOpsGroupStatus } = usePackageStore();
+  const { data: session } = useSession();
+  const { packages, mutate } = usePackages();
 
-  const canSeeAll = currentUser?.role === "administrator" || currentUser?.role === "travel_designer";
+  const canSeeAll = session?.user?.role === "administrator" || session?.user?.role === "travel_designer";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -127,9 +128,14 @@ export default function OpsPage() {
               : "Vue limitée aux groupes validés."
           }
           actions={
-            <Link href="/packages" className={buttonClassName({ variant: "outline" })}>
-              Gérer les packages
-            </Link>
+            <>
+              <Link href="/ops/tasks" className={buttonClassName({ variant: "outline" })}>
+                Tasks
+              </Link>
+              <Link href="/packages" className={buttonClassName({ variant: "outline" })}>
+                Gérer les packages
+              </Link>
+            </>
           }
         />
 
@@ -269,7 +275,13 @@ export default function OpsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => updateOpsGroupStatus(pkg.id, group.id, "pending_validation")}
+                                onClick={async () => {
+                                  await apiFetch(`/api/departures/${group.id}`, {
+                                    method: "PATCH",
+                                    body: JSON.stringify({ status: "pending_validation", validationDate: null }),
+                                  });
+                                  await mutate();
+                                }}
                               >
                                 Rouvrir
                               </Button>
@@ -277,7 +289,13 @@ export default function OpsPage() {
                               <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => updateOpsGroupStatus(pkg.id, group.id, "validated")}
+                                onClick={async () => {
+                                  await apiFetch(`/api/departures/${group.id}`, {
+                                    method: "PATCH",
+                                    body: JSON.stringify({ status: "validated" }),
+                                  });
+                                  await mutate();
+                                }}
                               >
                                 Valider
                               </Button>

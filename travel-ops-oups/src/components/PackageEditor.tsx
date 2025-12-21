@@ -3,9 +3,11 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ImageUp, Plus, Save, Trash2 } from "lucide-react";
+import { useSWRConfig } from "swr";
+import useSWR from "swr";
 import type { TravelPackage } from "../types";
 import { DEFAULT_RESPONSIBLE_NAME, generateProductCode, todayISO } from "../lib/packageDefaults";
-import { usePackageStore } from "../stores/usePackageStore";
+import { apiFetch } from "../lib/apiClient";
 
 type Mode = "create" | "edit";
 
@@ -54,6 +56,7 @@ const emptyPackage = (): TravelPackage => ({
   pricing: [{ label: "Adulte (Double)", subLabel: "", unitPrice: 0, commission: 0 }],
   agencyCommissions: { adulte: { t1: 0, t2: 0, t3: 0 }, enfant: 0, bebe: 0 },
   content: { included: [], excluded: [], excursionsIncluded: [], excursionsExtra: [] },
+  metadata: {},
   itinerary: {
     active: true,
     days: [{ dayNumber: 1, description: "" }],
@@ -66,7 +69,11 @@ const emptyPackage = (): TravelPackage => ({
 
 export function PackageEditor({ mode, initialPackage }: Props) {
   const router = useRouter();
-  const { addPackage, updatePackage, setPackageStatus } = usePackageStore();
+  const { mutate } = useSWRConfig();
+  const { data: destinations } = useSWR<Array<{ id: string; country: string; city?: string | null }>>(
+    "/api/destinations",
+    apiFetch
+  );
 
   const isEdit = mode === "edit";
   const [form, setForm] = useState<TravelPackage>(() => {
@@ -112,16 +119,23 @@ export function PackageEditor({ mode, initialPackage }: Props) {
 
       const payload: TravelPackage = { ...form, status: finalStatus };
       if (isEdit && initialPackage) {
-        updatePackage(initialPackage.id, payload);
-        setPackageStatus(initialPackage.id, finalStatus);
+        await apiFetch(`/api/packages/${initialPackage.id}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+        await mutate(`/api/packages/${initialPackage.id}`);
+        await mutate("/api/packages");
         return;
       }
 
       const { id: _id, opsProject: _opsProject, ...data } = payload;
       void _id;
       void _opsProject;
-      const created = addPackage(data);
-      if (finalStatus !== "draft") setPackageStatus(created.id, finalStatus);
+      const created = await apiFetch<TravelPackage>("/api/packages", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      await mutate("/api/packages");
       router.replace(`/packages/${created.id}`);
     } finally {
       setSaving(false);
@@ -149,7 +163,7 @@ export function PackageEditor({ mode, initialPackage }: Props) {
             {form.general.productName || "Nouveau package"}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-300">
-            Sections complètes, persistance localStorage.
+            Sections completes, persistence basee sur la base de donnees.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -294,6 +308,25 @@ export function PackageEditor({ mode, initialPackage }: Props) {
                   onChange={(e) => setForm((p) => ({ ...p, flights: { ...p.flights, destination: e.target.value } }))}
                   className={INPUT}
                 />
+              </Field>
+              <Field label="Destination intelligence">
+                <select
+                  value={form.metadata?.destinationId ?? ""}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      metadata: { ...(p.metadata ?? {}), destinationId: e.target.value || undefined },
+                    }))
+                  }
+                  className={INPUT}
+                >
+                  <option value="">Aucun lien</option>
+                  {(destinations ?? []).map((destination) => (
+                    <option key={destination.id} value={destination.id}>
+                      {destination.country} {destination.city ? `- ${destination.city}` : ""}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Villes (séparées par virgule)">
                 <input

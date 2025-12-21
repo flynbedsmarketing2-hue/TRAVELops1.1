@@ -3,9 +3,9 @@ export type UserRole = "administrator" | "travel_designer" | "sales_agent" | "vi
 export interface User {
   id: string;
   username: string;
-  password: string;
   role: UserRole;
   fullName?: string;
+  password?: string;
 }
 
 export type PackageStatus = "draft" | "published";
@@ -83,6 +83,7 @@ export interface Itinerary {
 export type OpsStatus = "pending_validation" | "validated";
 
 export interface OpsPaymentStep {
+  id?: string;
   label: string;
   amount: number;
   dueDate?: string;
@@ -90,6 +91,8 @@ export interface OpsPaymentStep {
 }
 
 export interface Supplier {
+  id?: string;
+  linkId?: string;
   name: string;
   contact?: string;
   cost?: number;
@@ -97,6 +100,7 @@ export interface Supplier {
 }
 
 export interface OpsTimelineItem {
+  id?: string;
   title: string;
   date?: string;
   note?: string;
@@ -132,6 +136,11 @@ export interface TravelPackage {
   agencyCommissions: AgencyCommissions;
   content: ContentSection;
   itinerary: Itinerary;
+  metadata?: {
+    destinationId?: string;
+    segmentFit?: string;
+    seasonality?: string;
+  };
   opsProject?: OpsProject;
 }
 

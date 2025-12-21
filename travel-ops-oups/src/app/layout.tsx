@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Noto_Sans } from "next/font/google";
 import "./globals.css";
 import AppShell from "../components/AppShell";
 import ThemeProvider from "../components/ThemeProvider";
+import AuthProvider from "../components/AuthProvider";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -30,7 +31,9 @@ export default function RootLayout({
         className={`${plusJakarta.variable} ${notoSans.variable} min-h-screen transition-colors`}
       >
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

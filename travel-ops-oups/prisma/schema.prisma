@@ -1,0 +1,451 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  administrator
+  travel_designer
+  sales_agent
+  viewer
+}
+
+enum PackageStatus {
+  draft
+  published
+  archived
+}
+
+enum OpsStatus {
+  pending_validation
+  validated
+}
+
+enum BookingType {
+  En_option
+  Confirmee
+}
+
+enum BookingStatus {
+  draft
+  confirmed
+  canceled
+}
+
+enum FactoryStage {
+  idea
+  research
+  brief
+  build
+  validation
+  published
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+enum SupplierType {
+  hotel
+  transport
+  airline
+  dmc
+  activity
+  visa
+  misc
+}
+
+enum CostLineType {
+  hotel
+  flight
+  transport
+  visa
+  misc
+}
+
+enum TaskStatus {
+  pending
+  in_progress
+  done
+  blocked
+}
+
+model Role {
+  id          String @id @default(cuid())
+  name        RoleName @unique
+  description String?
+  users       User[]
+}
+
+model User {
+  id           String  @id @default(cuid())
+  name         String?
+  username     String  @unique
+  email        String? @unique
+  passwordHash String
+  roleId       String?
+  role         Role?   @relation(fields: [roleId], references: [id])
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  auditLogs         AuditLog[] @relation("AuditActor")
+  comments          Comment[] @relation("CommentAuthor")
+  approvalRequests  ApprovalRequest[] @relation("ApprovalRequester")
+  approvalDecisions ApprovalDecision[]
+  factoryItems      FactoryItem[] @relation("FactoryOwner")
+  taskAssignments   TaskInstance[] @relation("TaskAssignee")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Package {
+  id                String        @id @default(cuid())
+  status            PackageStatus @default(draft)
+  general           Json
+  flights           Json
+  accommodations    Json
+  pricing           Json
+  agencyCommissions Json
+  content           Json
+  itinerary         Json
+  metadata          Json?
+  ownerId           String?
+  owner             User? @relation(fields: [ownerId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  departures  Departure[]
+  bookings    Booking[]
+  factoryItems FactoryItem[]
+  versions    PackageVersion[]
+  postMortem  PostMortem?
+}
+
+model PackageVersion {
+  id          String        @id @default(cuid())
+  packageId   String
+  version     Int
+  status      PackageStatus
+  data        Json
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  package   Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation(fields: [createdById], references: [id])
+
+  @@unique([packageId, version])
+}
+
+model FactoryItem {
+  id              String       @id @default(cuid())
+  title           String
+  stage           FactoryStage @default(idea)
+  brief           Json?
+  research        Json?
+  readinessIssues Json?
+  ownerId         String?
+  owner           User?    @relation("FactoryOwner", fields: [ownerId], references: [id])
+  linkedPackageId String?
+  linkedPackage   Package? @relation(fields: [linkedPackageId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Departure {
+  id             String   @id @default(cuid())
+  packageId      String
+  flightLabel    String
+  airline        String?
+  departureDate  DateTime?
+  returnDate     DateTime?
+  status         OpsStatus @default(pending_validation)
+  validationDate DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  package       Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  supplierLinks SupplierLink[]
+  costLines     CostLine[]
+  timelineItems OpsTimelineItem[]
+  taskInstances TaskInstance[]
+  bookings      Booking[]
+}
+
+model OpsTimelineItem {
+  id          String   @id @default(cuid())
+  departureId String
+  title       String
+  date        DateTime?
+  note        String?
+  kind        String?
+  createdAt   DateTime @default(now())
+
+  departure Departure @relation(fields: [departureId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id           String       @id @default(cuid())
+  packageId    String
+  departureId  String?
+  bookingType  BookingType
+  status       BookingStatus @default(draft)
+  reservedUntil DateTime?
+  rooms        Json
+  paxTotal     Int
+  uploads      Json
+  payment      Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  package   Package   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  departure Departure? @relation(fields: [departureId], references: [id])
+}
+
+model Supplier {
+  id        String       @id @default(cuid())
+  name      String
+  type      SupplierType
+  terms     String?
+  slaNotes  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts SupplierContact[]
+  links    SupplierLink[]
+  costLines CostLine[]
+}
+
+model SupplierContact {
+  id         String  @id @default(cuid())
+  supplierId String
+  name       String
+  email      String?
+  phone      String?
+  role       String?
+  createdAt  DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
+model SupplierLink {
+  id          String  @id @default(cuid())
+  supplierId  String
+  packageId   String?
+  departureId String?
+  notes       String?
+  cost        Int?
+  deadline    DateTime?
+  createdAt   DateTime @default(now())
+
+  supplier  Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  package   Package?  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  departure Departure? @relation(fields: [departureId], references: [id], onDelete: Cascade)
+}
+
+model CostLine {
+  id          String       @id @default(cuid())
+  packageId   String?
+  departureId String?
+  supplierId  String?
+  type        CostLineType
+  label       String
+  amount      Int
+  dueDate     DateTime?
+  paid        Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  package   Package?  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  departure Departure? @relation(fields: [departureId], references: [id], onDelete: Cascade)
+  supplier  Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+}
+
+model Destination {
+  id           String   @id @default(cuid())
+  country      String
+  city         String?
+  tags         String[]
+  seasonality  String?
+  bestMonths   String[]
+  segmentFit   String?
+  riskLevel    String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  visaRules VisaRule[]
+  events    Event[]
+}
+
+model VisaRule {
+  id               String   @id @default(cuid())
+  destinationId    String
+  requirements     Json
+  processingDays   Int?
+  difficultyScore  Int?
+  lastUpdated      DateTime?
+  createdAt        DateTime @default(now())
+
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id            String   @id @default(cuid())
+  destinationId String
+  name          String
+  startDate     DateTime
+  endDate       DateTime
+  type          String
+  impactScore   Int?
+  createdAt     DateTime @default(now())
+
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+}
+
+model TaskTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  productType     String?
+  offsetDays      Int
+  defaultRole     RoleName?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  taskInstances TaskInstance[]
+}
+
+model TaskInstance {
+  id           String     @id @default(cuid())
+  templateId   String?
+  departureId  String
+  title        String
+  dueDate      DateTime
+  status       TaskStatus @default(pending)
+  assigneeId   String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  template  TaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  departure Departure    @relation(fields: [departureId], references: [id], onDelete: Cascade)
+  assignee  User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+}
+
+model ApprovalRequest {
+  id           String         @id @default(cuid())
+  entityType   String
+  entityId     String
+  status       ApprovalStatus @default(pending)
+  requestedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  requestedBy User? @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  decisions   ApprovalDecision[]
+}
+
+model ApprovalDecision {
+  id          String         @id @default(cuid())
+  requestId   String
+  decidedById String
+  status      ApprovalStatus
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  request  ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  decidedBy User           @relation(fields: [decidedById], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  entityType String
+  entityId  String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  author User @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  entityType  String
+  entityId    String
+  fileName    String
+  filePath    String
+  mimeType    String?
+  size        Int?
+  uploadedById String?
+  createdAt   DateTime @default(now())
+
+  uploadedBy User? @relation(fields: [uploadedById], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  actorId    String?
+  beforeJson Json?
+  afterJson  Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+}
+
+model PostMortem {
+  id          String   @id @default(cuid())
+  packageId   String  @unique
+  summary     String?
+  learned     String?
+  issues      String?
+  improvements String?
+  kpis        Json?
+  createdAt   DateTime @default(now())
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}

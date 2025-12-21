@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
-import { useUserStore } from "../../stores/useUserStore";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, ensureAdmin, currentUser } = useUserStore();
+  const { data: session } = useSession();
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("password");
   const [error, setError] = useState<string | null>(null);
@@ -17,21 +17,21 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    ensureAdmin();
-  }, [ensureAdmin]);
-
-  useEffect(() => {
-    if (currentUser) {
+    if (session?.user) {
       router.replace(nextPath || "/dashboard");
     }
-  }, [currentUser, router, nextPath]);
+  }, [session, router, nextPath]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const result = login(username.trim(), password.trim());
-    if (!result.success) {
-      setError(result.message ?? "Impossible de se connecter");
+    const result = await signIn("credentials", {
+      username: username.trim(),
+      password: password.trim(),
+      redirect: false,
+    });
+    if (result?.error) {
+      setError("Impossible de se connecter");
       return;
     }
     router.replace(nextPath || "/dashboard");

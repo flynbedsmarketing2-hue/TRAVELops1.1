@@ -12,9 +12,10 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import AuthGuard from "../../../../components/AuthGuard";
-import { usePackageStore } from "../../../../stores/usePackageStore";
-import { useUserStore } from "../../../../stores/useUserStore";
+import { apiFetch } from "../../../../lib/apiClient";
+import { usePackages } from "../../../../hooks/usePackages";
 import type { OpsGroup, OpsPaymentStep, OpsTimelineItem, Supplier } from "../../../../types";
 import { daysUntil, groupAlerts, paymentStepStatus, supplierDeadlineStatus } from "../../../../lib/ops";
 
@@ -28,21 +29,10 @@ export default function OpsGroupPage() {
   const packageId = params.packageId;
   const groupId = params.groupId;
 
-  const { currentUser } = useUserStore();
-  const canValidate = currentUser?.role === "administrator" || currentUser?.role === "travel_designer";
+  const { data: session } = useSession();
+  const canValidate = session?.user?.role === "administrator" || session?.user?.role === "travel_designer";
 
-  const {
-    packages,
-    updateOpsGroupStatus,
-    addSupplier,
-    removeSupplier,
-    addCostStep,
-    updateCostStep,
-    removeCostStep,
-    addTimelineItem,
-    updateTimelineItem,
-    removeTimelineItem,
-  } = usePackageStore();
+  const { packages, mutate } = usePackages();
 
   const pkg = packages.find((p) => p.id === packageId);
   const group = pkg?.opsProject?.groups.find((g) => g.id === groupId) as OpsGroup | undefined;
@@ -112,7 +102,13 @@ export default function OpsGroupPage() {
             {canValidate ? (
               group.status === "validated" ? (
                 <button
-                  onClick={() => updateOpsGroupStatus(pkg.id, group.id, "pending_validation")}
+                  onClick={async () => {
+                    await apiFetch(`/api/departures/${group.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ status: "pending_validation", validationDate: null }),
+                    });
+                    await mutate();
+                  }}
                   className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100"
                   type="button"
                 >
@@ -121,7 +117,13 @@ export default function OpsGroupPage() {
                 </button>
               ) : (
                 <button
-                  onClick={() => updateOpsGroupStatus(pkg.id, group.id, "validated")}
+                  onClick={async () => {
+                    await apiFetch(`/api/departures/${group.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ status: "validated" }),
+                    });
+                    await mutate();
+                  }}
                   className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm"
                   type="button"
                 >
@@ -136,24 +138,74 @@ export default function OpsGroupPage() {
         <div className="grid gap-4 lg:grid-cols-[1fr,340px]">
           <div className="space-y-4">
             <TabList tab={tab} setTab={setTab} />
-            {tab === "overview" ? <OverviewTab group={group} alerts={alerts} /> : null}
+            {tab === "overview" ? <OverviewTab pkg={pkg} group={group} alerts={alerts} /> : null}
             {tab === "air" ? <AirTab group={group} /> : null}
             {tab === "land" ? (
               <LandTab
                 group={group}
-                onAddSupplier={(s) => addSupplier(pkg.id, group.id, s)}
-                onRemoveSupplier={(idx) => removeSupplier(pkg.id, group.id, idx)}
-                onAddCost={(c) => addCostStep(pkg.id, group.id, c)}
-                onUpdateCost={(idx, u) => updateCostStep(pkg.id, group.id, idx, u)}
-                onRemoveCost={(idx) => removeCostStep(pkg.id, group.id, idx)}
+                onAddSupplier={async (s) => {
+                  await apiFetch(`/api/departures/${group.id}/suppliers`, {
+                    method: "POST",
+                    body: JSON.stringify(s),
+                  });
+                  await mutate();
+                }}
+                onRemoveSupplier={async (linkId) => {
+                  if (!linkId) return;
+                  await apiFetch(`/api/departures/${group.id}/suppliers?linkId=${linkId}`, {
+                    method: "DELETE",
+                  });
+                  await mutate();
+                }}
+                onAddCost={async (c) => {
+                  await apiFetch(`/api/departures/${group.id}/cost-lines`, {
+                    method: "POST",
+                    body: JSON.stringify(c),
+                  });
+                  await mutate();
+                }}
+                onUpdateCost={async (id, u) => {
+                  if (!id) return;
+                  await apiFetch(`/api/departures/${group.id}/cost-lines`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ id, ...u }),
+                  });
+                  await mutate();
+                }}
+                onRemoveCost={async (id) => {
+                  if (!id) return;
+                  await apiFetch(`/api/departures/${group.id}/cost-lines?lineId=${id}`, {
+                    method: "DELETE",
+                  });
+                  await mutate();
+                }}
               />
             ) : null}
             {tab === "team" ? (
               <TeamTab
                 group={group}
-                onAddTimeline={(t) => addTimelineItem(pkg.id, group.id, t)}
-                onUpdateTimeline={(idx, u) => updateTimelineItem(pkg.id, group.id, idx, u)}
-                onRemoveTimeline={(idx) => removeTimelineItem(pkg.id, group.id, idx)}
+                onAddTimeline={async (t) => {
+                  await apiFetch(`/api/departures/${group.id}/timeline`, {
+                    method: "POST",
+                    body: JSON.stringify(t),
+                  });
+                  await mutate();
+                }}
+                onUpdateTimeline={async (id, u) => {
+                  if (!id) return;
+                  await apiFetch(`/api/departures/${group.id}/timeline`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ id, ...u }),
+                  });
+                  await mutate();
+                }}
+                onRemoveTimeline={async (id) => {
+                  if (!id) return;
+                  await apiFetch(`/api/departures/${group.id}/timeline?itemId=${id}`, {
+                    method: "DELETE",
+                  });
+                  await mutate();
+                }}
               />
             ) : null}
           </div>
@@ -208,13 +260,20 @@ function TabList({ tab, setTab }: { tab: TabKey; setTab: (t: TabKey) => void }) 
 }
 
 function OverviewTab({
+  pkg,
   group,
   alerts,
 }: {
+  pkg: { pricing: { unitPrice: number }[]; general: { stock: number } };
   group: OpsGroup;
   alerts: { overdueCosts: number; overdueSuppliers: number };
 }) {
   const dday = daysUntil(group.departureDate);
+  const totalCost = group.costs.reduce((sum, cost) => sum + (Number(cost.amount) || 0), 0);
+  const sellingPrice = pkg.pricing.length ? Math.min(...pkg.pricing.map((p) => p.unitPrice || 0)) : 0;
+  const costPerPax = pkg.general.stock ? Math.round(totalCost / pkg.general.stock) : 0;
+  const marginPerPax = sellingPrice ? sellingPrice - costPerPax : 0;
+  const breakEven = sellingPrice ? Math.ceil(totalCost / sellingPrice) : null;
   return (
     <div className="section-shell space-y-3">
       <h2 className="font-heading text-lg font-semibold text-slate-900 dark:text-slate-100">Résumé</h2>
@@ -226,6 +285,15 @@ function OverviewTab({
       <div className="grid gap-3 md:grid-cols-2">
         <Info label="Fournisseurs" value={`${group.suppliers.length}`} />
         <Info label="Étapes paiement" value={`${group.costs.length}`} />
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <Info label="Coût total" value={`${totalCost} DZD`} />
+        <Info label="Prix min" value={sellingPrice ? `${sellingPrice} DZD` : "—"} />
+        <Info label="Marge / pax" value={sellingPrice ? `${marginPerPax} DZD` : "—"} />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Info label="Coût / pax" value={costPerPax ? `${costPerPax} DZD` : "—"} />
+        <Info label="Break-even pax" value={breakEven ? `${breakEven}` : "—"} />
       </div>
       {alerts.overdueCosts || alerts.overdueSuppliers ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -263,10 +331,10 @@ function LandTab({
 }: {
   group: OpsGroup;
   onAddSupplier: (s: Supplier) => void;
-  onRemoveSupplier: (idx: number) => void;
+  onRemoveSupplier: (linkId?: string) => void;
   onAddCost: (c: OpsPaymentStep) => void;
-  onUpdateCost: (idx: number, u: Partial<OpsPaymentStep>) => void;
-  onRemoveCost: (idx: number) => void;
+  onUpdateCost: (id?: string, u: Partial<OpsPaymentStep>) => void;
+  onRemoveCost: (id?: string) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -290,8 +358,8 @@ function TeamTab({
 }: {
   group: OpsGroup;
   onAddTimeline: (t: OpsTimelineItem) => void;
-  onUpdateTimeline: (idx: number, u: Partial<OpsTimelineItem>) => void;
-  onRemoveTimeline: (idx: number) => void;
+  onUpdateTimeline: (id?: string, u: Partial<OpsTimelineItem>) => void;
+  onRemoveTimeline: (id?: string) => void;
 }) {
   return (
     <div className="section-shell space-y-3">
@@ -317,7 +385,7 @@ function SupplierEditor({
 }: {
   suppliers: Supplier[];
   onAdd: (s: Supplier) => void;
-  onRemove: (idx: number) => void;
+  onRemove: (linkId?: string) => void;
 }) {
   const [draft, setDraft] = useState<Supplier>({ name: "", contact: "", cost: 0, deadline: "" });
   return (
@@ -357,11 +425,11 @@ function SupplierEditor({
 
       {suppliers.length ? (
         <div className="space-y-2">
-          {suppliers.map((s, idx) => {
+          {suppliers.map((s) => {
             const status = supplierDeadlineStatus(s);
             return (
               <div
-                key={idx}
+                key={s.linkId ?? s.name}
                 className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
               >
                 <div>
@@ -376,7 +444,11 @@ function SupplierEditor({
                       En retard
                     </span>
                   ) : null}
-                  <button onClick={() => onRemove(idx)} className="text-xs font-semibold text-red-600" type="button">
+                  <button
+                    onClick={() => onRemove(s.linkId)}
+                    className="text-xs font-semibold text-red-600"
+                    type="button"
+                  >
                     Suppr.
                   </button>
                 </div>
@@ -448,11 +520,11 @@ function CostEditor({
 
       {costs.length ? (
         <div className="space-y-2">
-          {costs.map((c, idx) => {
+          {costs.map((c) => {
             const status = paymentStepStatus(c);
             return (
               <div
-                key={idx}
+                key={c.id ?? c.label}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
               >
                 <div>
@@ -476,13 +548,13 @@ function CostEditor({
                     {status === "paid" ? "Payé" : status === "overdue" ? "En retard" : "À payer"}
                   </span>
                   <button
-                    onClick={() => onUpdate(idx, { paid: !c.paid })}
+                    onClick={() => onUpdate(c.id, { paid: !c.paid })}
                     className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
                     type="button"
                   >
-                    Toggle payé
+                    Toggle paye
                   </button>
-                  <button onClick={() => onRemove(idx)} className="text-xs font-semibold text-red-600" type="button">
+                  <button onClick={() => onRemove(c.id)} className="text-xs font-semibold text-red-600" type="button">
                     Suppr.
                   </button>
                 </div>
@@ -516,9 +588,7 @@ function TimelineEditor({
   });
 
   const sorted = useMemo(() => {
-    return items
-      .map((item, index) => ({ item, index }))
-      .sort((a, b) => (a.item.date || "").localeCompare(b.item.date || ""));
+    return [...items].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   }, [items]);
 
   const kindValue = (draft.kind ?? "info") as NonNullable<OpsTimelineItem["kind"]>;
@@ -571,7 +641,7 @@ function TimelineEditor({
 
       {sorted.length ? (
         <div className="space-y-2">
-          {sorted.map(({ item, index }) => {
+          {sorted.map((item) => {
             const kind = item.kind ?? "info";
             const pill =
               kind === "done"
@@ -584,7 +654,7 @@ function TimelineEditor({
 
             return (
               <div
-                key={`${index}-${item.title}`}
+                key={item.id ?? `${item.title}-${item.date ?? ""}`}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
               >
                 <div>
@@ -597,13 +667,17 @@ function TimelineEditor({
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onUpdate(index, { kind: kind === "done" ? "info" : "done" })}
+                    onClick={() => onUpdate(item.id, { kind: kind === "done" ? "info" : "done" })}
                     className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
                     type="button"
                   >
                     Toggle done
                   </button>
-                  <button onClick={() => onRemove(index)} className="text-xs font-semibold text-red-600" type="button">
+                  <button
+                    onClick={() => onRemove(item.id)}
+                    className="text-xs font-semibold text-red-600"
+                    type="button"
+                  >
                     Suppr.
                   </button>
                 </div>

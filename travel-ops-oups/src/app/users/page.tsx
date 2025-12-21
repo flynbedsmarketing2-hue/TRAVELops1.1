@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import { KeyRound, Pencil, Trash2, UserRoundPlus, UsersRound } from "lucide-react";
+import { KeyRound, Pencil, Trash2, UserRoundPlus } from "lucide-react";
+import { useSession } from "next-auth/react";
 import AuthGuard from "../../components/AuthGuard";
 import PageHeader from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
@@ -9,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { cn } from "../../components/ui/cn";
 import { Input } from "../../components/ui/input";
 import { Modal } from "../../components/ui/modal";
-import { useUserStore } from "../../stores/useUserStore";
+import { apiFetch } from "../../lib/apiClient";
+import { useUsers } from "../../hooks/useUsers";
 import type { User, UserRole } from "../../types";
 
 export default function UsersPage() {
-  const { users, currentUser, register, updateUser, deleteUser, resetPassword, seedDemoUsers } = useUserStore();
+  const { data: session } = useSession();
+  const { users, mutate } = useUsers();
 
   const [query, setQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -48,7 +51,7 @@ export default function UsersPage() {
     setEditing(user);
     setForm({
       username: user.username,
-      password: user.password,
+      password: "",
       role: user.role,
       fullName: user.fullName ?? "",
     });
@@ -67,19 +70,24 @@ export default function UsersPage() {
       return;
     }
     if (editing) {
-      updateUser(editing.id, {
-        username: form.username.trim(),
-        fullName: form.fullName?.trim(),
-        role: form.role,
-        password: form.password.trim() || editing.password,
-      });
+      void apiFetch(`/api/users/${editing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          fullName: form.fullName?.trim(),
+          role: form.role,
+          password: form.password.trim() || undefined,
+        }),
+      }).then(() => mutate());
     } else {
-      register({
-        username: form.username.trim(),
-        fullName: form.fullName?.trim(),
-        role: form.role,
-        password: form.password.trim(),
-      });
+      void apiFetch("/api/users", {
+        method: "POST",
+        body: JSON.stringify({
+          username: form.username.trim(),
+          fullName: form.fullName?.trim(),
+          role: form.role,
+          password: form.password.trim(),
+        }),
+      }).then(() => mutate());
     }
     setShowModal(false);
   };
@@ -87,17 +95,20 @@ export default function UsersPage() {
   const doResetPassword = (userId: string) => {
     const next = window.prompt("Nouveau mot de passe :", "password");
     if (!next) return;
-    resetPassword(userId, next);
+    void apiFetch(`/api/users/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ password: next }),
+    }).then(() => mutate());
   };
 
   const doDelete = (user: User) => {
-    if (user.id === "seed-admin") {
-      window.alert("Impossible de supprimer le compte admin seed.");
+    if (user.username === "admin" || user.id === session?.user?.id) {
+      window.alert("Impossible de supprimer ce compte.");
       return;
     }
     const ok = window.confirm(`Supprimer l'utilisateur ${user.username} ?`);
     if (!ok) return;
-    deleteUser(user.id);
+    void apiFetch(`/api/users/${user.id}`, { method: "DELETE" }).then(() => mutate());
   };
 
   return (
@@ -107,19 +118,15 @@ export default function UsersPage() {
           eyebrow="Users"
           title="Gestion des comptes"
           subtitle={
-            currentUser
-              ? `CRUD mock stocké en localStorage. Connecté : ${currentUser.username}.`
-              : "CRUD mock stocké en localStorage."
+            session?.user
+              ? `Comptes securises. Connecte : ${session.user.username}.`
+              : "Comptes securises."
           }
           actions={
             <>
-              <Button variant="outline" onClick={() => seedDemoUsers()}>
-                <UsersRound className="h-4 w-4" />
-                Seed rôles demo
-              </Button>
               <Button onClick={openCreate}>
                 <UserRoundPlus className="h-4 w-4" />
-                Créer un utilisateur
+                Creer un utilisateur
               </Button>
             </>
           }
@@ -131,11 +138,11 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-3">
             <div className="flex-1">
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rechercher par username, nom ou rôle"
-              />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Rechercher par username, nom ou role"
+                />
             </div>
             <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
               {filtered.length}/{users.length}
@@ -150,7 +157,7 @@ export default function UsersPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{user.username}</p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-300">{user.fullName || "—"}</p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-300">{user.fullName || "-"}</p>
                   </div>
                   <span
                     className={cn(
@@ -167,7 +174,7 @@ export default function UsersPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEdit(user)}>
                     <Pencil className="h-4 w-4" />
-                    Éditer
+                    Editer
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => doResetPassword(user.id)}>
                     <KeyRound className="h-4 w-4" />
@@ -217,7 +224,7 @@ function UserModal({
   const roles: UserRole[] = ["administrator", "travel_designer", "sales_agent", "viewer"];
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? "Éditer un compte" : "Créer un compte"} className="max-w-xl">
+    <Modal open={open} onClose={onClose} title={editing ? "Editer un compte" : "Creer un compte"} className="max-w-xl">
       <div className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -231,7 +238,7 @@ function UserModal({
           </label>
 
           <label className="space-y-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            <span>Rôle</span>
+            <span>Role</span>
             <select
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}

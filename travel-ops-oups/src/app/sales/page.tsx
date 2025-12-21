@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ClipboardList, FileText, Pencil, PlusCircle, ReceiptText, Trash2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import AuthGuard from "../../components/AuthGuard";
 import PageHeader from "../../components/PageHeader";
 import BookingWizardModal, { type BookingDraft } from "../../components/BookingWizardModal";
@@ -9,9 +10,9 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { cn } from "../../components/ui/cn";
 import { Table, TBody, TD, THead, TH, TR } from "../../components/ui/table";
-import { useBookingStore } from "../../stores/useBookingStore";
-import { usePackageStore } from "../../stores/usePackageStore";
-import { useUserStore } from "../../stores/useUserStore";
+import { apiFetch } from "../../lib/apiClient";
+import { useBookings } from "../../hooks/useBookings";
+import { usePackages } from "../../hooks/usePackages";
 import type { Booking, TravelPackage } from "../../types";
 import { computeTotals, formatMoney, paymentStatus } from "../../lib/booking";
 
@@ -57,13 +58,13 @@ const defaultBooking = (packageId: string | undefined): BookingDraft => ({
 });
 
 export default function SalesPage() {
-  const { bookings, addBooking, updateBooking, deleteBooking } = useBookingStore();
-  const { packages } = usePackageStore();
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession();
+  const { bookings, mutate: mutateBookings } = useBookings();
+  const { packages } = usePackages();
 
   const publishedPackages = packages.filter((p) => p.status === "published");
 
-  const canCreate = currentUser?.role === "administrator" || currentUser?.role === "sales_agent";
+  const canCreate = session?.user?.role === "administrator" || session?.user?.role === "sales_agent";
 
   const [draft, setDraft] = useState<BookingDraft>(defaultBooking(publishedPackages[0]?.id));
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -138,9 +139,15 @@ export default function SalesPage() {
     };
 
     if (editingId) {
-      updateBooking(editingId, payload as Booking);
+      void apiFetch(`/api/bookings/${editingId}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      }).then(() => mutateBookings());
     } else {
-      addBooking(payload);
+      void apiFetch("/api/bookings", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }).then(() => mutateBookings());
     }
     close();
   };
@@ -148,7 +155,7 @@ export default function SalesPage() {
   const deleteOne = (bookingId: string) => {
     const ok = window.confirm("Supprimer cette reservation ?");
     if (!ok) return;
-    deleteBooking(bookingId);
+    void apiFetch(`/api/bookings/${bookingId}`, { method: "DELETE" }).then(() => mutateBookings());
   };
 
   const exportBookingPdf = async (booking: Booking, kind: "confirmation" | "invoice") => {
