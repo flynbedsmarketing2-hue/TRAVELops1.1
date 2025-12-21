@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireRole } from "../../../../lib/apiAuth";
 import { handleApiError } from "../../../../lib/apiResponse";
 import { logAudit } from "../../../../lib/audit";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = (await request.json()) as {
@@ -14,10 +15,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       offsetDays?: number;
       defaultRole?: string;
     };
-    const existing = await prisma.taskTemplate.findUnique({ where: { id: params.id } });
+    const existing = await prisma.taskTemplate.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const updated = await prisma.taskTemplate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name: payload.name ?? undefined,
         description: payload.description ?? undefined,
@@ -28,7 +29,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     });
     await logAudit({
       entityType: "TaskTemplate",
-      entityId: params.id,
+      entityId: id,
       action: "update",
       actorId: session.user.id,
       beforeJson: existing,
@@ -40,15 +41,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator"]);
-    const existing = await prisma.taskTemplate.findUnique({ where: { id: params.id } });
+    const existing = await prisma.taskTemplate.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    await prisma.taskTemplate.delete({ where: { id: params.id } });
+    await prisma.taskTemplate.delete({ where: { id: id } });
     await logAudit({
       entityType: "TaskTemplate",
-      entityId: params.id,
+      entityId: id,
       action: "delete",
       actorId: session.user.id,
       beforeJson: existing,
@@ -58,3 +60,5 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     return handleApiError(error);
   }
 }
+
+

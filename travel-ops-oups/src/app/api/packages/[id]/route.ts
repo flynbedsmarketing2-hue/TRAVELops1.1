@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireRole } from "../../../../lib/apiAuth";
 import { handleApiError } from "../../../../lib/apiResponse";
@@ -12,11 +12,12 @@ import {
 import { mapPackageForUi } from "../../../../lib/mappers";
 import { logAudit } from "../../../../lib/audit";
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     await requireRole(["administrator", "travel_designer", "sales_agent", "viewer"]);
     const pkg = await prisma.package.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         departures: {
           include: {
@@ -34,13 +35,14 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = packageUpdateSchema.parse(await request.json());
 
     const existing = await prisma.package.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: { departures: true },
     });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -56,7 +58,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       : false;
 
     const updated = await prisma.package.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: payload.status ?? undefined,
         general: payload.general ?? undefined,
@@ -162,7 +164,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     });
 
     const refreshed = await prisma.package.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         departures: {
           include: {
@@ -180,15 +182,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator"]);
-    const existing = await prisma.package.findUnique({ where: { id: params.id } });
+    const existing = await prisma.package.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    await prisma.package.delete({ where: { id: params.id } });
+    await prisma.package.delete({ where: { id: id } });
     await logAudit({
       entityType: "Package",
-      entityId: params.id,
+      entityId: id,
       action: "delete",
       actorId: session.user.id,
       beforeJson: existing,
@@ -198,3 +201,5 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     return handleApiError(error);
   }
 }
+
+

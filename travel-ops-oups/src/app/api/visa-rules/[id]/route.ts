@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "../../../../lib/prisma";
 import { requireRole } from "../../../../lib/apiAuth";
@@ -12,14 +12,15 @@ const visaUpdateSchema = z.object({
   lastUpdated: z.string().optional(),
 });
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = visaUpdateSchema.parse(await request.json());
-    const existing = await prisma.visaRule.findUnique({ where: { id: params.id } });
+    const existing = await prisma.visaRule.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const updated = await prisma.visaRule.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         requirements: payload.requirements ?? undefined,
         processingDays: payload.processingDays ?? undefined,
@@ -29,7 +30,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     });
     await logAudit({
       entityType: "VisaRule",
-      entityId: params.id,
+      entityId: id,
       action: "update",
       actorId: session.user.id,
       beforeJson: existing,
@@ -41,15 +42,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator"]);
-    const existing = await prisma.visaRule.findUnique({ where: { id: params.id } });
+    const existing = await prisma.visaRule.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    await prisma.visaRule.delete({ where: { id: params.id } });
+    await prisma.visaRule.delete({ where: { id: id } });
     await logAudit({
       entityType: "VisaRule",
-      entityId: params.id,
+      entityId: id,
       action: "delete",
       actorId: session.user.id,
       beforeJson: existing,
@@ -59,3 +61,5 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     return handleApiError(error);
   }
 }
+
+

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "../../../../lib/prisma";
 import { requireRole } from "../../../../lib/apiAuth";
@@ -13,14 +13,15 @@ const eventUpdateSchema = z.object({
   impactScore: z.number().int().optional(),
 });
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = eventUpdateSchema.parse(await request.json());
-    const existing = await prisma.event.findUnique({ where: { id: params.id } });
+    const existing = await prisma.event.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const updated = await prisma.event.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name: payload.name ?? undefined,
         startDate: payload.startDate ? new Date(payload.startDate) : undefined,
@@ -31,7 +32,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     });
     await logAudit({
       entityType: "Event",
-      entityId: params.id,
+      entityId: id,
       action: "update",
       actorId: session.user.id,
       beforeJson: existing,
@@ -43,15 +44,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator"]);
-    const existing = await prisma.event.findUnique({ where: { id: params.id } });
+    const existing = await prisma.event.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    await prisma.event.delete({ where: { id: params.id } });
+    await prisma.event.delete({ where: { id: id } });
     await logAudit({
       entityType: "Event",
-      entityId: params.id,
+      entityId: id,
       action: "delete",
       actorId: session.user.id,
       beforeJson: existing,
@@ -61,3 +63,5 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     return handleApiError(error);
   }
 }
+
+

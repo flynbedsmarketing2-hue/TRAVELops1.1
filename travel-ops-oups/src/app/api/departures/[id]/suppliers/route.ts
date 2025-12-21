@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
@@ -12,11 +12,12 @@ const supplierInput = z.object({
   deadline: z.string().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = supplierInput.parse(await request.json());
-    const departure = await prisma.departure.findUnique({ where: { id: params.id } });
+    const departure = await prisma.departure.findUnique({ where: { id: id } });
     if (!departure) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const supplier = await prisma.supplier.upsert({
@@ -51,7 +52,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const { searchParams } = new URL(request.url);
@@ -72,3 +74,5 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return handleApiError(error);
   }
 }
+
+

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
@@ -13,13 +13,14 @@ const eventSchema = z.object({
   impactScore: z.number().int().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = eventSchema.parse(await request.json());
     const created = await prisma.event.create({
       data: {
-        destinationId: params.id,
+        destinationId: id,
         name: payload.name,
         startDate: new Date(payload.startDate),
         endDate: new Date(payload.endDate),
@@ -39,3 +40,5 @@ export async function POST(request: Request, { params }: { params: { id: string 
     return handleApiError(error);
   }
 }
+
+

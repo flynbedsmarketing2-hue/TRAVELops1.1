@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "../../../../lib/prisma";
 import { requireRole } from "../../../../lib/apiAuth";
@@ -14,11 +14,12 @@ const factoryItemUpdateSchema = z.object({
   linkedPackageId: z.string().optional(),
 });
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     await requireRole(["administrator", "travel_designer", "sales_agent", "viewer"]);
     const item = await prisma.factoryItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: { owner: true, linkedPackage: true },
     });
     if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -28,11 +29,12 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = factoryItemUpdateSchema.parse(await request.json());
-    const existing = await prisma.factoryItem.findUnique({ where: { id: params.id } });
+    const existing = await prisma.factoryItem.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const nextBrief = payload.brief ?? (existing.brief as Record<string, unknown> | null);
@@ -42,7 +44,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     const updated = await prisma.factoryItem.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         title: payload.title ?? undefined,
         stage: payload.stage ?? undefined,
@@ -54,7 +56,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     });
     await logAudit({
       entityType: "FactoryItem",
-      entityId: params.id,
+      entityId: id,
       action: "update",
       actorId: session.user.id,
       beforeJson: existing,
@@ -66,15 +68,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator"]);
-    const existing = await prisma.factoryItem.findUnique({ where: { id: params.id } });
+    const existing = await prisma.factoryItem.findUnique({ where: { id: id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    await prisma.factoryItem.delete({ where: { id: params.id } });
+    await prisma.factoryItem.delete({ where: { id: id } });
     await logAudit({
       entityType: "FactoryItem",
-      entityId: params.id,
+      entityId: id,
       action: "delete",
       actorId: session.user.id,
       beforeJson: existing,
@@ -84,3 +87,5 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     return handleApiError(error);
   }
 }
+
+

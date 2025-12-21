@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
@@ -12,13 +12,14 @@ const visaSchema = z.object({
   lastUpdated: z.string().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = visaSchema.parse(await request.json());
     const created = await prisma.visaRule.create({
       data: {
-        destinationId: params.id,
+        destinationId: id,
         requirements: payload.requirements,
         processingDays: payload.processingDays ?? null,
         difficultyScore: payload.difficultyScore ?? null,
@@ -37,3 +38,5 @@ export async function POST(request: Request, { params }: { params: { id: string 
     return handleApiError(error);
   }
 }
+
+
