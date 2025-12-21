@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
@@ -10,16 +10,20 @@ const decisionSchema = z.object({
   comment: z.string().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await context.params;
     const session = await requireRole(["administrator"]);
     const payload = decisionSchema.parse(await request.json());
-    const existing = await prisma.approvalRequest.findUnique({ where: { id: params.id } });
+    const existing = await prisma.approvalRequest.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const decision = await prisma.approvalDecision.create({
       data: {
-        requestId: params.id,
+        requestId: id,
         decidedById: session.user.id,
         status: payload.status,
         comment: payload.comment ?? null,
@@ -27,7 +31,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     });
 
     const updated = await prisma.approvalRequest.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: payload.status },
     });
 
