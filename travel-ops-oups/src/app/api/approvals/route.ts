@@ -1,50 +1,50 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "../../../lib/prisma";
 import { requireRole } from "../../../lib/apiAuth";
 import { handleApiError } from "../../../lib/apiResponse";
 import { logAudit } from "../../../lib/audit";
+import { getParams, RouteContext } from "../../../lib/routeParams";
 
-const approvalRequestSchema = z.object({
-  entityType: z.string().min(1),
-  entityId: z.string().min(1),
+const decisionSchema = z.object({
+  status: z.enum(["approved", "rejected"]),
+  comment: z.string().optional(),
 });
 
-export async function GET() {
+export async function POST(
+  request: NextRequest,
+  context: RouteContext<{ id: string }>
+) {
   try {
-    await requireRole(["administrator", "travel_designer", "sales_agent", "viewer"]);
-    const approvals = await prisma.approvalRequest.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        decisions: { include: { decidedBy: true }, orderBy: { createdAt: "desc" } },
-        requestedBy: true,
-      },
-    });
-    return NextResponse.json(approvals);
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    const { id } = await getParams(context.params);
+    const session = await requireRole(["administrator"]);
+    const payload = decisionSchema.parse(await request.json());
+    const existing = await prisma.approvalRequest.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-export async function POST(request: Request) {
-  try {
-    const session = await requireRole(["administrator", "travel_designer"]);
-    const payload = approvalRequestSchema.parse(await request.json());
-    const created = await prisma.approvalRequest.create({
+    const decision = await prisma.approvalDecision.create({
       data: {
-        entityType: payload.entityType,
-        entityId: payload.entityId,
-        requestedById: session.user.id,
+        requestId: id,
+        decidedById: session.user.id,
+        status: payload.status,
+        comment: payload.comment ?? null,
       },
     });
-    await logAudit({
-      entityType: "ApprovalRequest",
-      entityId: created.id,
-      action: "create",
-      actorId: session.user.id,
-      afterJson: created,
+
+    const updated = await prisma.approvalRequest.update({
+      where: { id },
+      data: { status: payload.status },
     });
-    return NextResponse.json(created, { status: 201 });
+
+    await logAudit({
+      entityType: "ApprovalDecision",
+      entityId: decision.id,
+      action: payload.status,
+      actorId: session.user.id,
+      afterJson: decision,
+    });
+
+    return NextResponse.json({ request: updated, decision });
   } catch (error) {
     return handleApiError(error);
   }
