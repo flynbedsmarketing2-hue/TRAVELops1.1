@@ -11,10 +11,9 @@ import {
 } from "../../../../lib/opsBuilder";
 import { mapPackageForUi } from "../../../../lib/mappers";
 import { logAudit } from "../../../../lib/audit";
-import { getParams, RouteContext } from "../../../../lib/routeParams";
 
-export async function GET(request: NextRequest, context: RouteContext<{ id: string }>) {
-  const { id } = await getParams(context.params);
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     await requireRole(["administrator", "travel_designer", "sales_agent", "viewer"]);
     const pkg = await prisma.package.findUnique({
@@ -36,8 +35,8 @@ export async function GET(request: NextRequest, context: RouteContext<{ id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, context: RouteContext<{ id: string }>) {
-  const { id } = await getParams(context.params);
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = packageUpdateSchema.parse(await request.json());
@@ -183,8 +182,8 @@ export async function PATCH(request: NextRequest, context: RouteContext<{ id: st
   }
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext<{ id: string }>) {
-  const { id } = await getParams(context.params);
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator"]);
     const existing = await prisma.package.findUnique({ where: { id: id } });
@@ -202,5 +201,4 @@ export async function DELETE(request: NextRequest, context: RouteContext<{ id: s
     return handleApiError(error);
   }
 }
-
 

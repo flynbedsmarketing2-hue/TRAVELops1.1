@@ -4,7 +4,6 @@ import { prisma } from "../../../../lib/prisma";
 import { requireRole } from "../../../../lib/apiAuth";
 import { handleApiError } from "../../../../lib/apiResponse";
 import { logAudit } from "../../../../lib/audit";
-import { getParams, RouteContext } from "../../../../lib/routeParams";
 
 const visaUpdateSchema = z.object({
   requirements: z.record(z.any()).optional(),
@@ -13,8 +12,8 @@ const visaUpdateSchema = z.object({
   lastUpdated: z.string().optional(),
 });
 
-export async function PATCH(request: NextRequest, context: RouteContext<{ id: string }>) {
-  const { id } = await getParams(context.params);
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = visaUpdateSchema.parse(await request.json());
@@ -43,8 +42,8 @@ export async function PATCH(request: NextRequest, context: RouteContext<{ id: st
   }
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext<{ id: string }>) {
-  const { id } = await getParams(context.params);
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const session = await requireRole(["administrator"]);
     const existing = await prisma.visaRule.findUnique({ where: { id: id } });
