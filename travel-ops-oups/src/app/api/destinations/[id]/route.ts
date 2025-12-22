@@ -4,6 +4,7 @@ import { prisma } from "../../../../lib/prisma";
 import { requireRole } from "../../../../lib/apiAuth";
 import { handleApiError } from "../../../../lib/apiResponse";
 import { logAudit } from "../../../../lib/audit";
+import { getParams, RouteContext } from "../../../../lib/routeParams";
 
 const destinationUpdateSchema = z.object({
   country: z.string().optional(),
@@ -16,8 +17,8 @@ const destinationUpdateSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function GET(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     await requireRole(["administrator", "travel_designer", "sales_agent", "viewer"]);
     const destination = await prisma.destination.findUnique({
@@ -31,8 +32,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   }
 }
 
-export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function PATCH(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = destinationUpdateSchema.parse(await request.json());
@@ -65,8 +66,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function DELETE(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator"]);
     const existing = await prisma.destination.findUnique({ where: { id: id } });

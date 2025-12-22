@@ -4,6 +4,7 @@ import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
 import { handleApiError } from "../../../../../lib/apiResponse";
 import { logAudit } from "../../../../../lib/audit";
+import { getParams, RouteContext } from "../../../../../lib/routeParams";
 
 const timelineInput = z.object({
   title: z.string().min(1),
@@ -12,8 +13,8 @@ const timelineInput = z.object({
   kind: z.string().optional(),
 });
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function POST(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = timelineInput.parse(await request.json());
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = (await request.json()) as {
@@ -83,7 +84,7 @@ export async function PATCH(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const { searchParams } = new URL(request.url);

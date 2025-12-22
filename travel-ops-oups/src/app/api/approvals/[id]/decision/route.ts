@@ -4,6 +4,7 @@ import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
 import { handleApiError } from "../../../../../lib/apiResponse";
 import { logAudit } from "../../../../../lib/audit";
+import { getParams, RouteContext } from "../../../../../lib/routeParams";
 
 const decisionSchema = z.object({
   status: z.enum(["approved", "rejected"]),
@@ -12,10 +13,10 @@ const decisionSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: RouteContext<{ id: string }>
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await getParams(context.params);
     const session = await requireRole(["administrator"]);
     const payload = decisionSchema.parse(await request.json());
     const existing = await prisma.approvalRequest.findUnique({ where: { id } });

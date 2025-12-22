@@ -4,6 +4,7 @@ import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
 import { handleApiError } from "../../../../../lib/apiResponse";
 import { logAudit } from "../../../../../lib/audit";
+import { getParams, RouteContext } from "../../../../../lib/routeParams";
 
 const supplierInput = z.object({
   name: z.string().min(1),
@@ -12,8 +13,8 @@ const supplierInput = z.object({
   deadline: z.string().optional(),
 });
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function POST(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = supplierInput.parse(await request.json());
@@ -52,8 +53,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function DELETE(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const { searchParams } = new URL(request.url);

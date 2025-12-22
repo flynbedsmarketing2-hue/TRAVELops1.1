@@ -4,6 +4,7 @@ import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
 import { handleApiError } from "../../../../../lib/apiResponse";
 import { logAudit } from "../../../../../lib/audit";
+import { getParams, RouteContext } from "../../../../../lib/routeParams";
 
 const visaSchema = z.object({
   requirements: z.record(z.any()),
@@ -12,8 +13,8 @@ const visaSchema = z.object({
   lastUpdated: z.string().optional(),
 });
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function POST(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = visaSchema.parse(await request.json());

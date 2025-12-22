@@ -4,6 +4,7 @@ import { prisma } from "../../../../../lib/prisma";
 import { requireRole } from "../../../../../lib/apiAuth";
 import { handleApiError } from "../../../../../lib/apiResponse";
 import { logAudit } from "../../../../../lib/audit";
+import { getParams, RouteContext } from "../../../../../lib/routeParams";
 
 const eventSchema = z.object({
   name: z.string().min(1),
@@ -13,8 +14,8 @@ const eventSchema = z.object({
   impactScore: z.number().int().optional(),
 });
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function POST(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = eventSchema.parse(await request.json());

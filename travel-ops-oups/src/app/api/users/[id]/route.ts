@@ -5,6 +5,7 @@ import { prisma } from "../../../../lib/prisma";
 import { requireRole } from "../../../../lib/apiAuth";
 import { handleApiError } from "../../../../lib/apiResponse";
 import { logAudit } from "../../../../lib/audit";
+import { getParams, RouteContext } from "../../../../lib/routeParams";
 
 const userUpdateSchema = z.object({
   role: z.enum(["administrator", "travel_designer", "sales_agent", "viewer"]).optional(),
@@ -12,8 +13,8 @@ const userUpdateSchema = z.object({
   password: z.string().min(6).optional(),
 });
 
-export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function PATCH(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator"]);
     const payload = userUpdateSchema.parse(await request.json());
@@ -49,8 +50,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function DELETE(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator"]);
     const existing = await prisma.user.findUnique({ where: { id: id } });

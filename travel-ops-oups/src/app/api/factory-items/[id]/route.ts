@@ -5,6 +5,7 @@ import { requireRole } from "../../../../lib/apiAuth";
 import { handleApiError } from "../../../../lib/apiResponse";
 import { logAudit } from "../../../../lib/audit";
 import { checkBriefReadiness } from "../../../../lib/factory";
+import { getParams, RouteContext } from "../../../../lib/routeParams";
 
 const factoryItemUpdateSchema = z.object({
   title: z.string().optional(),
@@ -14,8 +15,8 @@ const factoryItemUpdateSchema = z.object({
   linkedPackageId: z.string().optional(),
 });
 
-export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function GET(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     await requireRole(["administrator", "travel_designer", "sales_agent", "viewer"]);
     const item = await prisma.factoryItem.findUnique({
@@ -29,8 +30,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   }
 }
 
-export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function PATCH(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator", "travel_designer"]);
     const payload = factoryItemUpdateSchema.parse(await request.json());
@@ -68,8 +69,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function DELETE(request: NextRequest, context: RouteContext<{ id: string }>) {
+  const { id } = await getParams(context.params);
   try {
     const session = await requireRole(["administrator"]);
     const existing = await prisma.factoryItem.findUnique({ where: { id: id } });
