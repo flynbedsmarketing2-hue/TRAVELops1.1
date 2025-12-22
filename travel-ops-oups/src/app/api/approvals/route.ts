@@ -1,26 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "../../../lib/prisma";
 import { requireRole } from "../../../lib/apiAuth";
 import { handleApiError } from "../../../lib/apiResponse";
 import { logAudit } from "../../../lib/audit";
-import { getParams, RouteContext } from "../../../lib/routeParams";
+import { getParams } from "../../../lib/routeParams";
 
-const decisionSchema = z.object({
-  status: z.enum(["approved", "rejected"]),
-  comment: z.string().optional(),
-});
+// simple runtime validation to avoid depending on 'zod' types
+const isValidStatus = (s: any): s is "approved" | "rejected" =>
+  s === "approved" || s === "rejected";
 
-export async function POST(
-  request: NextRequest,
-  context: RouteContext<{ id: string }>
-) {
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = await getParams(context.params);
+    const { id } = await getParams(params);
     const session = await requireRole(["administrator"]);
-    const payload = decisionSchema.parse(await request.json());
+    const body = await request.json().catch(() => ({}));
+    const payload = {
+      status: body?.status,
+      comment: body?.comment,
+    };
+    if (!isValidStatus(payload.status)) {
+      return new Response(JSON.stringify({ error: "Invalid status" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+
     const existing = await prisma.approvalRequest.findUnique({ where: { id } });
-    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!existing) {
+      return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
+    }
 
     const decision = await prisma.approvalDecision.create({
       data: {
@@ -44,7 +48,7 @@ export async function POST(
       afterJson: decision,
     });
 
-    return NextResponse.json({ request: updated, decision });
+    return new Response(JSON.stringify({ request: updated, decision }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (error) {
     return handleApiError(error);
   }
